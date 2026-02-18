@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Maker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #ffffff;
+            color: #000000;
+            line-height: 1.5;
+        }
+        .container { padding: 5px 30px 30px 30px; width: 100%; }
+        h1 {
+            text-align: center;
+            margin: 0 0 10px 0;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: bold;
+            padding-bottom: 15px;
+        }
+        .input-section { margin-bottom: 20px; }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            height: 36px;
+            margin-bottom: 12px;
+            border: 1px solid #000;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fff;
+            color: #000;
+        }
+        input:focus { outline: none; box-shadow: inset 0 0 0 2px #000; }
+        .row { display: flex; gap: 15px; }
+        .row > div { flex: 1; }
+        .section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #888;
+            border-top: 1px solid #ddd;
+            padding-top: 14px;
+            margin-top: 6px;
+            margin-bottom: 10px;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            font-size: clamp(9px, 2vw, 14px);
+            padding: clamp(6px, 1.5vw, 10px);
+            flex: 1;
+            min-width: 80px;
+            min-height: 40px;
+            text-align: center;
+            border: 2px solid #000;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #fff;
+            color: #000;
+            transition: all 0.2s ease;
+        }
+        .secondary-btn:hover:not(:disabled) { background: #303030; color: #fff; }
+        .arrow-btn { background: #606060; color: #fff; font-size: clamp(16px,3vw,22px); min-width: 30px; }
+        .arrow-btn:hover:not(:disabled) { background: #303030; }
+        .arrow-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .green-btn { background: #4CAF50; color: #fff; border-color: #4CAF50; }
+        .green-btn:hover:not(:disabled) { background: #303030; border-color: #303030; }
+        .red-btn { background: #FF5733; color: #fff; border-color: #FF5733; }
+        .red-btn:hover:not(:disabled) { background: #303030; border-color: #303030; }
+
+        .picsplit-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border: 2px solid #000;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s, color 0.2s;
+        }
+        .picsplit-toggle:hover { background: #f5f5f5; }
+        .picsplit-toggle.active { background: #000; color: #fff; }
+        .picsplit-toggle .ps-box {
+            width: 20px; height: 20px;
+            border: 2px solid currentColor;
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .picsplit-toggle .ps-label {
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+        }
+        .picsplit-toggle .ps-sub {
+            font-size: 0.72rem;
+            opacity: 0.65;
+            font-weight: 400;
+            letter-spacing: 0;
+            margin-left: 4px;
+        }
+
+        .canvas-container {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            background: #aaa;
+            width: 100%;
+            overflow: hidden;
+        }
+        .split-canvas-wrapper {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+        }
+        .canvas-half {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .canvas-half canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            touch-action: none;
+            user-select: none;
+        }
+        .split-label {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: #fff;
+            background: #444;
+            padding: 3px 0;
+        }
+        canvas {
+            touch-action: none;
+            user-select: none;
+            display: block;
+            margin: 0 auto;
+            cursor: default;
+        }
+        canvas.has-image { cursor: grab; }
+        canvas.dragging  { cursor: grabbing; }
+        .loader {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            width: 1.2rem; height: 1.2rem;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin: 8px auto;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>CANVAS MAKER™</h1>
+    <div class="input-section">
+        <div class="section-title">Canvas Face Size</div>
+        <div class="row">
+            <div>
+                <label for="cW">WIDTH (mm)</label>
+                <input type="number" id="cW" value="1000" min="10">
+            </div>
+            <div>
+                <label for="cH">HEIGHT (mm)</label>
+                <input type="number" id="cH" value="1000" min="10">
+            </div>
+        </div>
+
+        <label class="picsplit-toggle" id="picsplitToggle" onclick="return false;">
+            <span class="ps-box" id="psBox"></span>
+            <span>
+                <span class="ps-label">PICSPLIT</span>
+                <span class="ps-sub">— Split image across two canvasses</span>
+            </span>
+        </label>
+
+        <div class="button-group" id="presetBtns">
+            <button class="secondary-btn" data-w="959.1" data-h="806.7" data-split="false">PIC1</button>
+            <button class="secondary-btn" data-w="1111.5" data-h="959.1" data-split="false">PIC2</button>
+            <button class="secondary-btn" data-w="1263.9" data-h="1109.0" data-split="false">PIC3</button>
+            <button class="secondary-btn" data-w="1143.0" data-h="998.0" data-split="false">PIC-H1</button>
+            <button class="secondary-btn" data-w="1143.0" data-h="1147.8" data-split="false">PIC-H2</button>
+            <button class="secondary-btn" data-w="1143.0" data-h="1297.9" data-split="false">PIC-H3</button>
+            <button class="secondary-btn" data-w="1556.0" data-h="788.9" data-split="false">PIC-SIDE1</button>
+            <button class="secondary-btn" data-w="1807.5" data-h="938.8" data-split="false">PIC-SIDE2</button>
+            <button class="secondary-btn" data-w="2069.1" data-h="1068.3" data-split="false">PIC-SIDE3</button>
+            <button class="secondary-btn" data-w="811.8" data-h="811.8" data-split="true">PIC-SPLIT1</button>
+            <button class="secondary-btn" data-w="938.8" data-h="938.8" data-split="true">PIC-SPLIT2</button>
+            <button class="secondary-btn" data-w="1068.3" data-h="1068.3" data-split="true">PIC-SPLIT3</button>
+            <button class="secondary-btn" data-w="1269.0" data-h="1228.3" data-split="true">PIC-SPLIT4</button>
+        </div>
+
+        <div class="section-title">Wrap</div>
+        <div class="row">
+            <div>
+                <label for="sideWrap">SIDE WRAP (mm)</label>
+                <input type="number" id="sideWrap" value="44" min="0" step="0.5">
+            </div>
+            <div>
+                <label for="backWrap">BACK WRAP (mm)</label>
+                <input type="number" id="backWrap" value="15" min="0" step="0.5">
+            </div>
+        </div>
+        <input type="hidden" id="bleed" value="45">
+        <input type="hidden" id="guideLen" value="35">
+        <div class="section-title">Export</div>
+        <label for="fn">FILE NAME</label>
+        <input type="text" id="fn" placeholder="Eg. CANVAS-1000x1000">
+    </div>
+
+    <input type="file" id="imgLdr" accept="image/*" style="display:none">
+    <div class="button-group">
+        <button class="arrow-btn" id="leftArrow">←</button>
+        <button class="arrow-btn" id="rightArrow">→</button>
+        <button class="arrow-btn" id="upArrow">↑</button>
+        <button class="arrow-btn" id="downArrow">↓</button>
+        <button class="secondary-btn" id="upBtn"><i class="fas fa-plus"></i> Add Image</button>
+        <button class="secondary-btn" id="rmvBtn"><i class="fas fa-trash"></i> Remove Image</button>
+        <button class="green-btn" id="jpgBtn"><i class="fas fa-image"></i> Artwork Proof</button>
+        <button class="red-btn" id="pdfBtn"><i class="fas fa-file-pdf"></i> Generate PDF</button>
+    </div>
+    <div id="loader" class="loader"></div>
+    <div class="canvas-container" id="canvasContainer">
+        <canvas id="cnvSingle"></canvas>
+    </div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('canvasContainer');
+    let cnvLeft  = document.getElementById('cnvSingle');
+    let cnvRight = null;
+    let upImg    = null;
+    let imgXOffset = 0, imgYOffset = 0;
+    let isDragging = false, dragStartX = 0, dragStartY = 0;
+    let activeDragCnv = null;
+    let intervalId = null;
+    let isSplit = false;
+
+    function getNum(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+    function getDims() {
+        const cW       = getNum('cW');
+        const cH       = getNum('cH');
+        const sideWrap = getNum('sideWrap');
+        const backWrap = getNum('backWrap');
+        const bleed    = getNum('bleed');
+        const imgZone  = sideWrap + backWrap;
+        const totalW   = cW + (imgZone + bleed) * 2;
+        const totalH   = cH + (imgZone + bleed) * 2;
+        const imgAreaX = bleed;
+        const imgAreaY = bleed;
+        const imgAreaW = cW + imgZone * 2;
+        const imgAreaH = cH + imgZone * 2;
+        const faceX    = bleed + imgZone;
+        const faceY    = bleed + imgZone;
+        return { cW, cH, sideWrap, backWrap, bleed, imgZone,
+                 totalW, totalH, imgAreaX, imgAreaY, imgAreaW, imgAreaH, faceX, faceY };
+    }
+
+    function getSplitDraw(d, side) {
+        if (!upImg) return null;
+        const fullAreaW = (d.cW * 2) + (d.imgZone * 2);
+        const fullAreaH = d.cH + (d.imgZone * 2);
+        const scl = Math.max(fullAreaW / upImg.width, fullAreaH / upImg.height);
+        const sW  = upImg.width  * scl;
+        const sH  = upImg.height * scl;
+        const centerX = fullAreaW / 2 + imgXOffset;
+        const centerY = fullAreaH / 2 + imgYOffset;
+        const leftBoundary = centerX - sW / 2;
+        const topBoundary  = centerY - sH / 2;
+        const sideCorrection = side === 'right' ? d.cW : 0;
+        return {
+            x: (d.imgAreaX + leftBoundary) - sideCorrection,
+            y: d.imgAreaY + topBoundary,
+            w: sW, h: sH
+        };
+    }
+
+    function drawOneCanvas(cnv, d, side) {
+        const halfW = container.clientWidth / 2;
+        const scale = (isSplit ? halfW : container.clientWidth) / d.totalW;
+        cnv.width  = Math.round(d.totalW * scale);
+        cnv.height = Math.round(d.totalH * scale);
+        const ctx = cnv.getContext('2d');
+        ctx.clearRect(0, 0, cnv.width, ctx.height);
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, d.totalW, d.totalH);
+        ctx.fillStyle = '#d8d8d8';
+        ctx.fillRect(d.imgAreaX, d.imgAreaY, d.imgAreaW, d.imgAreaH);
+        if (upImg) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(d.imgAreaX, d.imgAreaY, d.imgAreaW, d.imgAreaH);
+            ctx.clip();
+            if (side) {
+                const p = getSplitDraw(d, side);
+                if (p) ctx.drawImage(upImg, p.x, p.y, p.w, p.h);
+            } else {
+                const scl = Math.max(d.imgAreaW / upImg.width, d.imgAreaH / upImg.height);
+                const sW  = upImg.width * scl, sH = upImg.height * scl;
+                ctx.drawImage(upImg,
+                    d.imgAreaX + (d.imgAreaW - sW) / 2 + imgXOffset,
+                    d.imgAreaY + (d.imgAreaH - sH) / 2 + imgYOffset,
+                    sW, sH);
+            }
+            ctx.restore();
+        }
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.lineWidth = 0.5;
+        ctx.setLineDash([3, 3]);
+        const bwX = d.bleed + d.backWrap;
+        ctx.strokeRect(bwX, bwX, d.totalW - bwX * 2, d.totalH - bwX * 2);
+        ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+        ctx.lineWidth = 0.7;
+        ctx.setLineDash([]);
+        ctx.strokeRect(d.faceX, d.faceY, d.cW, d.cH);
+        const guideLen = getNum('guideLen'), guideThk = 0.5;
+        ctx.fillStyle = '#000';
+        ctx.setLineDash([]);
+        ctx.fillRect(d.totalW/2 - guideThk/2, 0, guideThk, guideLen);
+        ctx.fillRect(d.totalW/2 - guideThk/2, d.totalH - guideLen, guideThk, guideLen);
+        ctx.fillRect(0, d.totalH/2 - guideThk/2, guideLen, guideThk);
+        ctx.fillRect(d.totalW - guideLen, d.totalH/2 - guideThk/2, guideLen, guideThk);
+        ctx.restore();
+    }
+
+    function drawCnv() {
+        const d = getDims();
+        if (isSplit) {
+            drawOneCanvas(cnvLeft,  d, 'left');
+            drawOneCanvas(cnvRight, d, 'right');
+        } else {
+            drawOneCanvas(cnvLeft, d, null);
+        }
+        updateArrows();
+    }
+
+    function setupSplitLayout() {
+        container.innerHTML = '';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'split-canvas-wrapper';
+        ['left', 'right'].forEach(side => {
+            const half = document.createElement('div');
+            half.className = 'canvas-half';
+            const lbl = document.createElement('div');
+            lbl.className = 'split-label';
+            lbl.textContent = side === 'left' ? 'LEFT CANVAS' : 'RIGHT CANVAS';
+            const cnv = document.createElement('canvas');
+            cnv.className = 'has-image';
+            half.appendChild(lbl);
+            half.appendChild(cnv);
+            wrapper.appendChild(half);
+            if (side === 'left')  cnvLeft  = cnv;
+            else                  cnvRight = cnv;
+        });
+        container.appendChild(wrapper);
+        attachDrag(cnvLeft,  'left');
+        attachDrag(cnvRight, 'right');
+    }
+
+    function setupSingleLayout() {
+        container.innerHTML = '';
+        const cnv = document.createElement('canvas');
+        cnv.id = 'cnvSingle';
+        container.appendChild(cnv);
+        cnvLeft  = cnv;
+        cnvRight = null;
+        attachDrag(cnvLeft, null);
+    }
+
+    function canvasCoords(e, cnv, d) {
+        const rect = cnv.getBoundingClientRect();
+        const src  = e.touches ? e.touches[0] : e;
+        return {
+            x: (src.clientX - rect.left) * (d.totalW / rect.width),
+            y: (src.clientY - rect.top)  * (d.totalH / rect.height)
+        };
+    }
+
+    function clampOffset(d, side) {
+        if (!upImg) return;
+        if (side) {
+            const fullAreaW = (d.cW * 2) + (d.imgZone * 2);
+            const fullAreaH = d.cH + (d.imgZone * 2);
+            const scl = Math.max(fullAreaW / upImg.width, fullAreaH / upImg.height);
+            const sW = upImg.width * scl, sH = upImg.height * scl;
+            const maxX = (sW - fullAreaW) / 2, maxY = (sH - fullAreaH) / 2;
+            imgXOffset = Math.max(-maxX, Math.min(maxX, imgXOffset));
+            imgYOffset = Math.max(-maxY, Math.min(maxY, imgYOffset));
+        } else {
+            const scl = Math.max(d.imgAreaW / upImg.width, d.imgAreaH / upImg.height);
+            const sW = upImg.width * scl, sH = upImg.height * scl;
+            imgXOffset = Math.max(-(sW - d.imgAreaW)/2, Math.min((sW - d.imgAreaW)/2, imgXOffset));
+            imgYOffset = Math.max(-(sH - d.imgAreaH)/2, Math.min((sH - d.imgAreaH)/2, imgYOffset));
+        }
+    }
+
+    function attachDrag(cnv, side) {
+        function onStart(e) {
+            if (!upImg) return;
+            if (e.touches) e.preventDefault();
+            isDragging = true;
+            activeDragCnv = cnv;
+            const d = getDims();
+            const p = canvasCoords(e, cnv, d);
+            dragStartX = p.x - imgXOffset;
+            dragStartY = p.y - imgYOffset;
+            cnv.classList.add('dragging');
+        }
+        function onMove(e) {
+            if (!isDragging || activeDragCnv !== cnv || !upImg) return;
+            if (e.touches) e.preventDefault();
+            const d = getDims();
+            const p = canvasCoords(e, cnv, d);
+            imgXOffset = p.x - dragStartX;
+            imgYOffset = p.y - dragStartY;
+            clampOffset(d, side);
+            drawCnv();
+        }
+        function onEnd() { isDragging = false; activeDragCnv = null; cnv.classList.remove('dragging'); }
+        cnv.addEventListener('mousedown',   onStart);
+        cnv.addEventListener('mousemove',   onMove);
+        cnv.addEventListener('mouseup',     onEnd);
+        cnv.addEventListener('mouseleave',  onEnd);
+        cnv.addEventListener('touchstart',  onStart, { passive: false });
+        cnv.addEventListener('touchmove',   onMove,  { passive: false });
+        cnv.addEventListener('touchend',    onEnd);
+        cnv.addEventListener('touchcancel', onEnd);
+    }
+
+    function updateArrows() {
+        const ids = ['leftArrow','rightArrow','upArrow','downArrow'];
+        if (!upImg) { ids.forEach(id => document.getElementById(id).disabled = true); return; }
+        const d = getDims();
+        let maxX, maxY;
+        if (isSplit) {
+            const fullAreaW = (d.cW * 2) + (d.imgZone * 2);
+            const fullAreaH = d.cH + (d.imgZone * 2);
+            const scl = Math.max(fullAreaW / upImg.width, fullAreaH / upImg.height);
+            maxX = (upImg.width * scl - fullAreaW) / 2;
+            maxY = (upImg.height * scl - fullAreaH) / 2;
+        } else {
+            const scl = Math.max(d.imgAreaW / upImg.width, d.imgAreaH / upImg.height);
+            maxX = (upImg.width * scl - d.imgAreaW) / 2;
+            maxY = (upImg.height * scl - d.imgAreaH) / 2;
+        }
+        document.getElementById('leftArrow').disabled  = imgXOffset <= -maxX;
+        document.getElementById('rightArrow').disabled = imgXOffset >= maxX;
+        document.getElementById('upArrow').disabled    = imgYOffset <= -maxY;
+        document.getElementById('downArrow').disabled  = imgYOffset >= maxY;
+    }
+
+    function shiftImage(dir) {
+        if (!upImg) return;
+        const d = getDims(), amt = 2;
+        if (dir === 'left')  imgXOffset -= amt;
+        if (dir === 'right') imgXOffset += amt;
+        if (dir === 'up')    imgYOffset -= amt;
+        if (dir === 'down')  imgYOffset += amt;
+        clampOffset(d, isSplit ? 'left' : null);
+        drawCnv();
+    }
+
+    function startMoving(dir) { if (!intervalId) intervalId = setInterval(() => shiftImage(dir), 80); }
+    function stopMoving()      { clearInterval(intervalId); intervalId = null; }
+
+    ['leftArrow','rightArrow','upArrow','downArrow'].forEach(id => {
+        const btn = document.getElementById(id);
+        const dir = id.replace('Arrow', '');
+        btn.addEventListener('click', () => shiftImage(dir));
+        btn.addEventListener('mousedown', () => startMoving(dir));
+        btn.addEventListener('mouseup',   stopMoving);
+        btn.addEventListener('mouseleave',stopMoving);
+    });
+
+    document.getElementById('picsplitToggle').addEventListener('click', () => {
+        isSplit = !isSplit;
+        document.getElementById('psBox').textContent = isSplit ? '✓' : '';
+        document.getElementById('picsplitToggle').classList.toggle('active', isSplit);
+        imgXOffset = 0; imgYOffset = 0;
+        if (isSplit) setupSplitLayout();
+        else         setupSingleLayout();
+        drawCnv();
+    });
+
+    document.getElementById('upBtn').addEventListener('click', () => document.getElementById('imgLdr').click());
+
+    document.getElementById('imgLdr').addEventListener('change', e => {
+        const loader = document.getElementById('loader');
+        loader.style.display = 'block';
+        const rdr = new FileReader();
+        rdr.onload = ev => {
+            upImg = new Image();
+            upImg.onload = () => {
+                imgXOffset = 0; imgYOffset = 0;
+                loader.style.display = 'none';
+                if (!isSplit) cnvLeft.classList.add('has-image');
+                drawCnv();
+            };
+            upImg.src = ev.target.result;
+        };
+        rdr.readAsDataURL(e.target.files[0]);
+    });
+
+    document.getElementById('rmvBtn').addEventListener('click', () => {
+        upImg = null; imgXOffset = 0; imgYOffset = 0;
+        document.getElementById('loader').style.display = 'none';
+        if (!isSplit) cnvLeft.classList.remove('has-image');
+        drawCnv();
+    });
+
+    document.getElementById('presetBtns').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('cW').value = btn.dataset.w;
+            document.getElementById('cH').value = btn.dataset.h;
+            document.getElementById('sideWrap').value = 44;
+            const targetSplit = btn.dataset.split === 'true';
+            if (isSplit !== targetSplit) {
+                isSplit = targetSplit;
+                document.getElementById('psBox').textContent = isSplit ? '✓' : '';
+                document.getElementById('picsplitToggle').classList.toggle('active', isSplit);
+                imgXOffset = 0; imgYOffset = 0;
+                if (isSplit) setupSplitLayout();
+                else         setupSingleLayout();
+            }
+            drawCnv();
+        });
+    });
+
+    ['cW','cH','sideWrap','backWrap'].forEach(id => {
+        document.getElementById(id).addEventListener('input', drawCnv);
+    });
+    document.getElementById('fn').addEventListener('input', drawCnv);
+
+    function fmt(n) { return Number.isInteger(n) ? n.toString() : n.toFixed(1); }
+
+    function drawMeasurement(ctx, x1, y1, x2, y2, label, type, textPos) {
+        ctx.save();
+        ctx.strokeStyle = '#333'; ctx.fillStyle = '#333';
+        ctx.lineWidth = 1; ctx.font = '15px Arial, sans-serif';
+        const tk = 5;
+        if (type === 'h' || type === 'iso_h') {
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2 || y1); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x1, y1-tk); ctx.lineTo(x1, y1+tk); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x2, (y2||y1)-tk); ctx.lineTo(x2, (y2||y1)+tk); ctx.stroke();
+            if (textPos === 'below') {
+                ctx.textAlign = 'center'; ctx.fillText(label, (x1+x2)/2, (y1+(y2||y1))/2 + 18);
+            } else if (textPos === 'above_left') {
+                ctx.textAlign = 'right'; ctx.fillText(label, x1 - 4, y1 + 5);
+            } else if (textPos === 'above_iso') {
+                ctx.textAlign = 'center'; ctx.fillText(label, (x1+x2)/2, (y1+y2)/2 - 12);
+            } else {
+                ctx.textAlign = 'center'; ctx.fillText(label, (x1+x2)/2, (y1+(y2||y1))/2 - 8);
+            }
+        } else {
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 || x1, y2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x1-tk, y1); ctx.lineTo(x1+tk, y1); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo((x2||x1)-tk, y2); ctx.lineTo((x2||x1)+tk, y2); ctx.stroke();
+            if (textPos === 'right') {
+                ctx.textAlign = 'left'; ctx.fillText(label, (x1+(x2||x1))/2 + 8, (y1+y2)/2 + 5);
+            } else {
+                ctx.save(); ctx.translate((x1+(x2||x1))/2-12,(y1+y2)/2); ctx.rotate(-Math.PI/2);
+                ctx.textAlign = 'center'; ctx.fillText(label, 0, 0); ctx.restore();
+            }
+        }
+        ctx.restore();
+    }
+
+    function drawQuadImage(ctx, pts, img) {
+        const [tl, tr, br, bl] = pts;
+        const w = img.width, h = img.height;
+        function drawTri(p0, p1, p2, uv0, uv1, uv2) {
+            const denom = uv0[0]*(uv1[1]-uv2[1]) + uv1[0]*(uv2[1]-uv0[1]) + uv2[0]*(uv0[1]-uv1[1]);
+            if (Math.abs(denom) < 0.0001) return;
+            const a  = ((p0[0]-p2[0])*(uv1[1]-uv2[1]) - (p1[0]-p2[0])*(uv0[1]-uv2[1])) / denom;
+            const b  = ((p0[1]-p2[1])*(uv1[1]-uv2[1]) - (p1[1]-p2[1])*(uv0[1]-uv2[1])) / denom;
+            const c  = ((p1[0]-p2[0])*(uv0[0]-uv2[0]) - (p0[0]-p2[0])*(uv1[0]-uv2[0])) / denom;
+            const ff = ((p1[1]-p2[1])*(uv0[0]-uv2[0]) - (p0[1]-p2[1])*(uv1[0]-uv2[0])) / denom;
+            const e  = p2[0] - a*uv2[0] - c*uv2[1];
+            const g  = p2[1] - b*uv2[0] - ff*uv2[1];
+            ctx.save(); ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]);
+            ctx.closePath(); ctx.clip(); ctx.transform(a, b, c, ff, e, g); ctx.drawImage(img, 0, 0, w, h); ctx.restore();
+        }
+        drawTri(tl, tr, bl, [0,0], [w,0], [0,h]);
+        drawTri(tr, br, bl, [w,0], [w,h], [0,h]);
+    }
+
+    function getImgCanvas(d, regionX, regionY, regionW, regionH, flipH, outW, outH, splitSide) {
+        outW = Math.max(1, Math.round(outW || regionW));
+        outH = Math.max(1, Math.round(outH || regionH));
+        const off = document.createElement('canvas');
+        off.width = outW; off.height = outH;
+        const oc = off.getContext('2d');
+        if (!upImg) { oc.fillStyle = '#c8c8c8'; oc.fillRect(0, 0, outW, outH); return off; }
+        let drawP;
+        if (splitSide) {
+            drawP = getSplitDraw(d, splitSide);
+        } else {
+            const scl = Math.max(d.imgAreaW / upImg.width, d.imgAreaH / upImg.height);
+            const sW  = upImg.width * scl, sH = upImg.height * scl;
+            drawP = {
+                x: d.imgAreaX + (d.imgAreaW - sW) / 2 + imgXOffset,
+                y: d.imgAreaY + (d.imgAreaH - sH) / 2 + imgYOffset,
+                w: sW, h: sH
+            };
+        }
+        const rx = outW / regionW, ry = outH / regionH;
+        const dx = (drawP.x - regionX) * rx;
+        const dy = (drawP.y - regionY) * ry;
+        const dw = drawP.w * rx, dh = drawP.h * ry;
+        oc.save();
+        if (flipH) { oc.translate(outW, 0); oc.scale(-1, 1); }
+        oc.drawImage(upImg, flipH ? -(dx + dw) + outW : dx, dy, dw, dh);
+        oc.restore();
+        return off;
+    }
+
+    function drawIsoCanvas(pc, ox, oy, d, fw, fh, sw, th, woodColor, woodDark, woodLight, splitSide, showDepth) {
+        const topTL = [ox,       oy], topTR = [ox+fw,    oy], topBR = [ox+fw+sw, oy-th], topBL = [ox+sw,    oy-th];
+        const sideTL = [ox+fw,    oy], sideTR = [ox+fw+sw, oy-th], sideBR = [ox+fw+sw, oy-th+fh], sideBL = [ox+fw,    oy+fh];
+        pc.save(); pc.beginPath(); pc.moveTo(topTL[0],topTL[1]); pc.lineTo(topTR[0],topTR[1]); pc.lineTo(topBR[0],topBR[1]); pc.lineTo(topBL[0],topBL[1]); pc.closePath();
+        const tg = pc.createLinearGradient(topTL[0],topTL[1],topBL[0],topBL[1]);
+        tg.addColorStop(0, woodLight); tg.addColorStop(1, woodColor); pc.fillStyle = tg; pc.fill(); pc.restore();
+        const topImg = getImgCanvas(d, d.faceX, d.bleed+d.backWrap, d.cW, d.sideWrap, false, fw, th, splitSide);
+        drawQuadImage(pc, [topBL,topBR,topTR,topTL], topImg);
+        pc.save(); pc.beginPath(); pc.moveTo(sideTL[0],sideTL[1]); pc.lineTo(sideTR[0],sideTR[1]); pc.lineTo(sideBR[0],sideBR[1]); pc.lineTo(sideBL[0],sideBL[1]); pc.closePath();
+        const sg = pc.createLinearGradient(sideTL[0],0,sideTR[0],0);
+        sg.addColorStop(0, woodDark); sg.addColorStop(1, woodColor); pc.fillStyle = sg; pc.fill(); pc.restore();
+        const sideImg = getImgCanvas(d, d.totalW-d.bleed-d.backWrap-d.sideWrap, d.faceY, d.sideWrap, d.cH, false, sw, fh, splitSide);
+        drawQuadImage(pc, [sideTL,sideTR,sideBR,sideBL], sideImg);
+        const frontImg = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, fw, fh, splitSide);
+        pc.save(); pc.beginPath(); pc.rect(ox, oy, fw, fh); pc.clip(); pc.drawImage(frontImg, ox, oy, fw, fh); pc.restore();
+        pc.strokeStyle = '#00000080'; pc.lineWidth = 1; pc.strokeRect(ox, oy, fw, fh);
+        pc.beginPath(); pc.moveTo(topTL[0],topTL[1]); pc.lineTo(topBL[0],topBL[1]); pc.lineTo(topBR[0],topBR[1]); pc.lineTo(topTR[0],topTR[1]); pc.moveTo(topBR[0],topBR[1]); pc.lineTo(sideBR[0],sideBR[1]);
+        pc.strokeStyle = '#00000060'; pc.lineWidth = 0.8; pc.stroke();
+        if (showDepth) {
+            drawMeasurement(pc, topTR[0], topTR[1]-10, topBR[0], topBR[1]-10, `${fmt(d.sideWrap)}mm`, 'iso_h', 'above_iso');
+        }
+    }
+
+    function drawBackPanel(pc, bx, fy, d, fw, fh, woodColor, splitSide, showEdgeBatten) {
+        const batPxW = Math.round(fw * (d.sideWrap / d.cW)), batPxH = Math.round(fh * (d.sideWrap / d.cH));
+        const bwPxW  = Math.round(fw * (d.backWrap  / d.cW)), bwPxH  = Math.round(fh * (d.backWrap  / d.cH));
+        const intPxW = fw - batPxW * 2, intPxH = fh - batPxH * 2;
+        const back = document.createElement('canvas'); back.width = fw; back.height = fh;
+        const bc = back.getContext('2d'); const flipped = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, true, fw, fh, splitSide);
+        bc.drawImage(flipped, 0, 0); const wr = new Path2D(); wr.rect(bwPxW, bwPxH, fw-bwPxW*2, fh-bwPxH*2); wr.rect(batPxW, batPxH, intPxW, intPxH);
+        bc.save(); bc.clip(wr, 'evenodd'); bc.fillStyle = woodColor; bc.fillRect(0, 0, fw, fh); bc.restore();
+        bc.fillStyle = '#ffffff'; bc.fillRect(batPxW, batPxH, intPxW, intPxH);
+        pc.drawImage(back, bx, fy); pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(bx, fy, fw, fh);
+        const intX1 = bx+batPxW, intX2 = bx+batPxW+intPxW, intY1 = fy+batPxH, intY2 = fy+batPxH+intPxH;
+        drawMeasurement(pc, intX1, intY1+18, intX2, intY1+18, `${fmt(d.cW-d.sideWrap*2)}mm`, 'h', 'below');
+        drawMeasurement(pc, intX1+18, intY1, intX1+18, intY2, `${fmt(d.cH-d.sideWrap*2)}mm`, 'v', 'right');
+        if (showEdgeBatten !== false) {
+            const batMidY = fy + Math.round(fh / 2);
+            drawMeasurement(pc, bx+fw-batPxW, batMidY, bx+fw, batMidY, `${fmt(d.sideWrap)}mm`, 'h', 'above_left');
+        }
+    }
+
+    document.getElementById('jpgBtn').addEventListener('click', () => {
+        const d  = getDims(); const fn = document.getElementById('fn').value || 'canvas';
+        if (isSplit) generateSplitProof(d, fn); else generateSingleProof(d, fn);
+    });
+
+    function generateSingleProof(d, fn) {
+        const woodColor = '#C8A96E', woodDark = '#8B6340', woodLight = '#E8C888', MARGIN = 80, TOP_H = 160, GAP = 100;
+        const aspect = d.cH > 0 ? d.cW / d.cH : 1, frontH = Math.min(480, Math.round(500 / aspect)), frontW = Math.round(frontH * aspect);
+        const batH = Math.round(frontH * (d.sideWrap / d.cH)), batW = Math.round(frontW * (d.sideWrap / d.cW));
+        const thD = Math.max(20, Math.round(batH * 0.7)), swD = Math.max(20, Math.round(batW * 0.7));
+        const isc = 0.90, ifw = Math.round(frontW * isc), ifh = Math.round(frontH * isc), isw = Math.round(swD * isc), ith = Math.round(thD * isc);
+        const isoTotalW = ifw + isw, isoTotalH = ifh + ith, panelMaxH = Math.max(frontH, isoTotalH), isoLS = Math.round(MARGIN * 0.40);
+        const TOTAL_W = (MARGIN-isoLS)*2 + isoTotalW + GAP + frontW + GAP + frontW + 60, TOTAL_H = TOP_H + panelMaxH + 140;
+        const proof = document.createElement('canvas'); proof.width = TOTAL_W; proof.height = TOTAL_H;
+        const pc = proof.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, TOTAL_W, TOTAL_H); pc.fillStyle = '#000'; pc.font = 'bold 26px Arial'; pc.textAlign = 'center'; pc.fillText(fn ? `${fn} — CANVAS PROOF` : 'CANVAS PROOF', TOTAL_W/2, 46);
+        const pY = TOP_H, iX = MARGIN - isoLS, fX = iX + isoTotalW + GAP, bX = fX + frontW + GAP, coI = Math.round((panelMaxH - isoTotalH) / 2), coF = Math.round((panelMaxH - frontH) / 2);
+        drawIsoCanvas(pc, iX+isw, pY+coI+ith, d, ifw, ifh, isw, ith, woodColor, woodDark, woodLight, null, true);
+        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('ISOMETRIC VIEW', iX+isw+ifw/2, pY+coI+ith+ifh+22);
+        const fImg = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, frontW, frontH, null);
+        pc.save(); pc.beginPath(); pc.rect(fX, pY+coF, frontW, frontH); pc.clip(); pc.drawImage(fImg, fX, pY+coF, frontW, frontH); pc.restore(); pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(fX, pY+coF, frontW, frontH);
+        drawMeasurement(pc, fX, pY+coF-20, fX+frontW, pY+coF-20, `${fmt(d.cW)}mm`, 'h'); drawMeasurement(pc, fX-20, pY+coF, fX-20, pY+coF+frontH, `${fmt(d.cH)}mm`, 'v');
+        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('FRONT', fX+frontW/2, pY+coF+frontH+22);
+        drawBackPanel(pc, bX, pY+coF, d, frontW, frontH, woodColor, null); pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('BACK', bX+frontW/2, pY+coF+frontH+22);
+        const discY = TOP_H + panelMaxH + 70; pc.font = '13px Arial'; pc.fillStyle = '#555'; pc.textAlign = 'center'; pc.fillText('This proof shows how your artwork will be cropped to fit the mechanism dimensions.', TOTAL_W/2, discY); pc.fillText('Please review the positioning and cropping carefully, then reply to confirm approval before production.', TOTAL_W/2, discY+20);
+        const a = document.createElement('a'); a.href = proof.toDataURL('image/jpeg', 0.93); a.download = `${fn} - CANVAS PROOF.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    function generateSplitProof(d, fn) {
+        const woodColor = '#C8A96E', woodDark = '#8B6340', woodLight = '#E8C888', TOP_H = 160, MARGIN = 50, GAP = 50, SEC_GAP = 70;
+        const aspect  = d.cH > 0 ? d.cW / d.cH : 1, singleH = Math.min(280, Math.round(300 / aspect)), singleW = Math.round(singleH * aspect), doubleW = singleW * 2;
+        const batH = Math.round(singleH * (d.sideWrap / d.cH)), batW = Math.round(singleW * (d.sideWrap / d.cW)), thD  = Math.max(12, Math.round(batH * 0.7)), swD  = Math.max(12, Math.round(batW * 0.7));
+        const isc  = 0.78, ifw  = Math.round(singleW * isc), ifh = Math.round(singleH * isc), isw  = Math.round(swD * isc), ith = Math.round(thD * isc), SEP  = Math.round(ifw * 0.14);
+        const isoTouchW = ifw*2 + isw, isoGapW = ifw*2 + SEP + isw, isoBlockW = isoTouchW + GAP + isoGapW, isoH = ifh + ith, panelMaxH = Math.max(singleH, isoH);
+        const TOTAL_W = MARGIN*2 + isoBlockW + SEC_GAP + doubleW + SEC_GAP + doubleW + 100, TOTAL_H = TOP_H + panelMaxH + 180;
+        const proof = document.createElement('canvas'); proof.width = TOTAL_W; proof.height = TOTAL_H;
+        const pc = proof.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, TOTAL_W, TOTAL_H); pc.fillStyle = '#000'; pc.font = 'bold 26px Arial'; pc.textAlign = 'center'; pc.fillText(fn ? `${fn} — PICSPLIT CANVAS PROOF` : 'PICSPLIT CANVAS PROOF', TOTAL_W/2, 46);
+        const pY = TOP_H, coIso = Math.round((panelMaxH - isoH) / 2), coFlat = Math.round((panelMaxH - singleH) / 2);
+        const isoTouchStartX = MARGIN, isoGapStartX = MARGIN + isoTouchW + GAP, frontStartX = MARGIN + isoBlockW + SEC_GAP, backStartX = frontStartX + doubleW + SEC_GAP;
+        function drawIsoPair(startX, gap, isFirstPair) {
+            const baseY = pY + coIso + ith, leftOx  = startX + isw, rightOx = leftOx + ifw + gap;
+            drawIsoCanvas(pc, leftOx,  baseY, d, ifw, ifh, isw, ith, woodColor, woodDark, woodLight, 'left', isFirstPair);
+            drawIsoCanvas(pc, rightOx, baseY, d, ifw, ifh, isw, ith, woodColor, woodDark, woodLight, 'right', false);
+            if (gap === 0) { pc.strokeStyle = '#00000050'; pc.lineWidth = 1.5; pc.setLineDash([]); pc.beginPath(); pc.moveTo(leftOx + ifw, baseY); pc.lineTo(leftOx + ifw, baseY + ifh); pc.stroke(); }
+        }
+        drawIsoPair(isoTouchStartX, 0, true); drawIsoPair(isoGapStartX, SEP, false);
+        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('ISOMETRIC VIEWS', MARGIN + isoBlockW/2, pY + coIso + ith + ifh + 22);
+        const fy = pY + coFlat;
+        const lFront = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, singleW, singleH, 'left'), rFront = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, singleW, singleH, 'right');
+        pc.save(); pc.beginPath(); pc.rect(frontStartX, fy, singleW, singleH); pc.clip(); pc.drawImage(lFront, frontStartX, fy, singleW, singleH); pc.restore();
+        pc.save(); pc.beginPath(); pc.rect(frontStartX+singleW, fy, singleW, singleH); pc.clip(); pc.drawImage(rFront, frontStartX+singleW, fy, singleW, singleH); pc.restore();
+        pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(frontStartX, fy, singleW, singleH); pc.strokeRect(frontStartX+singleW, fy, singleW, singleH);
+        drawMeasurement(pc, frontStartX, fy-20, frontStartX+singleW, fy-20, `${fmt(d.cW)}mm`, 'h'); drawMeasurement(pc, frontStartX+singleW, fy-20, frontStartX+doubleW, fy-20, `${fmt(d.cW)}mm`, 'h'); drawMeasurement(pc, frontStartX, fy-46, frontStartX+doubleW, fy-46, `${fmt(d.cW*2)}mm TOTAL`, 'h'); drawMeasurement(pc, frontStartX-20, fy, frontStartX-20, fy+singleH, `${fmt(d.cH)}mm`, 'v');
+        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.fillText('LEFT', frontStartX+singleW/2, fy+singleH+22); pc.fillText('RIGHT', frontStartX+singleW+singleW/2, fy+singleH+22); pc.fillText('FRONT VIEW', frontStartX+doubleW/2, fy+singleH+42);
+        drawBackPanel(pc, backStartX, fy, d, singleW, singleH, woodColor, 'left',  false); drawBackPanel(pc, backStartX+singleW, fy, d, singleW, singleH, woodColor, 'right', false);
+        pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(backStartX, fy, singleW, singleH); pc.strokeRect(backStartX+singleW, fy, singleW, singleH);
+        const batPxW = Math.round(singleW * (d.sideWrap / d.cW)), batMidY = fy + Math.round(singleH / 2), centreX1 = backStartX + singleW - batPxW, centreX2 = backStartX + singleW + batPxW;
+        drawMeasurement(pc, centreX1, batMidY, centreX2, batMidY, `${fmt(d.sideWrap * 2)}mm`, 'h', 'above_left');
+        drawMeasurement(pc, backStartX + (singleW * 2) - batPxW, batMidY, backStartX + (singleW * 2), batMidY, `${fmt(d.sideWrap)}mm`, 'h', 'above_left');
+        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('RIGHT', backStartX+singleW/2, fy+singleH+22); pc.fillText('LEFT', backStartX+singleW+singleW/2, fy+singleH+22); pc.fillText('BACK VIEW', backStartX+doubleW/2, fy+singleH+42);
+        const discY = TOP_H + panelMaxH + 100; pc.font = '13px Arial'; pc.fillStyle = '#555'; pc.textAlign = 'center'; pc.fillText('This proof shows how your artwork will be cropped across both PICSPLIT canvasses.', TOTAL_W/2, discY); pc.fillText('Please review the positioning and cropping carefully, then reply to confirm approval before production.', TOTAL_W/2, discY+20);
+        const a = document.createElement('a'); a.href = proof.toDataURL('image/jpeg', 0.93); a.download = `${fn} - PICSPLIT PROOF.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    document.getElementById('pdfBtn').addEventListener('click', () => {
+        const d  = getDims(); const fn = document.getElementById('fn').value || 'canvas'; const PT = 72 / 25.4;
+        function buildPdf(side) {
+            const pdf = new jsPDF({ orientation: d.totalW >= d.totalH ? 'landscape' : 'portrait', unit: 'pt', format: [d.totalW * PT, d.totalH * PT] });
+            pdf.setFillColor(255,255,255); pdf.rect(0, 0, d.totalW*PT, d.totalH*PT, 'F');
+            if (upImg) {
+                const tmp = document.createElement('canvas'); tmp.width = upImg.width; tmp.height = upImg.height; tmp.getContext('2d').drawImage(upImg, 0, 0); const dataUrl = tmp.toDataURL('image/jpeg', 1.0);
+                const drawP = side ? getSplitDraw(d, side) : {
+                    x: d.imgAreaX + (d.imgAreaW - (upImg.width * Math.max(d.imgAreaW/upImg.width, d.imgAreaH/upImg.height))) / 2 + imgXOffset,
+                    y: d.imgAreaY + (d.imgAreaH - (upImg.height * Math.max(d.imgAreaW/upImg.width, d.imgAreaH/upImg.height))) / 2 + imgYOffset,
+                    w: upImg.width * Math.max(d.imgAreaW/upImg.width, d.imgAreaH/upImg.height),
+                    h: upImg.height * Math.max(d.imgAreaW/upImg.width, d.imgAreaH/upImg.height)
+                };
+                pdf.addImage(dataUrl, 'JPEG', drawP.x*PT, drawP.y*PT, drawP.w*PT, drawP.h*PT);
+            }
+            pdf.setFillColor(255,255,255); pdf.rect(0, 0, d.totalW*PT, d.bleed*PT, 'F'); pdf.rect(0, (d.totalH-d.bleed)*PT, d.totalW*PT, d.bleed*PT, 'F'); pdf.rect(0, d.bleed*PT, d.bleed*PT, (d.totalH-d.bleed*2)*PT, 'F'); pdf.rect((d.totalW-d.bleed)*PT, d.bleed*PT, d.bleed*PT, (d.totalH-d.bleed*2)*PT, 'F');
+            const gL = getNum('guideLen')*PT, gT = 0.5*PT; pdf.setFillColor(0,0,0); pdf.rect(d.totalW*PT/2-gT/2, 0, gT, gL, 'F'); pdf.rect(d.totalW*PT/2-gT/2, d.totalH*PT-gL, gT, gL, 'F'); pdf.rect(0, d.totalH*PT/2-gT/2, gL, gT, 'F'); pdf.rect(d.totalW*PT-gL, d.totalH*PT/2-gT/2, gL, gT, 'F');
+            
+            const iW = d.cW-d.sideWrap*2, iH = d.cH-d.sideWrap*2, sideLabel = side ? ` | ${side.toUpperCase()} CANVAS` : ''; 
+            pdf.setFontSize(12); pdf.setTextColor(0,0,0); 
+            
+            const specLabel = `Template Height: ${fmt(d.totalH)}mm  |  Template Width: ${fmt(d.totalW)}mm  |  Finished Canvas Height: ${fmt(d.cH)}mm  |  Finished Canvas Width: ${fmt(d.cW)}mm  |  Canvas Frame Thickness: ${fmt(d.sideWrap)}mm  |  Internal Frame Width: ${fmt(iW)}mm  |  Internal Frame Height: ${fmt(iH)}mm`;
+            
+            pdf.text(`${fn}${sideLabel}  |  ${specLabel}`, (d.bleed+3)*PT, (d.totalH-d.bleed+10)*PT);
+            return pdf;
+        }
+        if (isSplit) { buildPdf('left').save(`${fn} - LEFT CANVAS.pdf`); setTimeout(() => buildPdf('right').save(`${fn} - RIGHT CANVAS.pdf`), 400); } else { buildPdf(null).save(`${fn}.pdf`); }
+    });
+    attachDrag(cnvLeft, null); new ResizeObserver(drawCnv).observe(container); drawCnv();
+});
+</script>
+</body>
+</html>
