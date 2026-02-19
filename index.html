@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canvas Maker</title>
+    <title>Canvas Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -179,7 +179,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>CANVAS MAKER™</h1>
+    <h1>CANVAS GENERATOR™</h1>
     <div class="input-section">
         <div class="section-title">Canvas Face Size</div>
         <div class="row">
@@ -190,6 +190,10 @@
             <div>
                 <label for="cH">HEIGHT (mm)</label>
                 <input type="number" id="cH" value="1000" min="10">
+            </div>
+            <div>
+                <label for="sideWrap">FRAME (mm)</label>
+                <input type="number" id="sideWrap" value="44" min="0" step="0.5">
             </div>
         </div>
 
@@ -202,32 +206,22 @@
         </label>
 
         <div class="button-group" id="presetBtns">
-            <button class="secondary-btn" data-w="959.1" data-h="806.7" data-split="false">PIC1</button>
-            <button class="secondary-btn" data-w="1111.5" data-h="959.1" data-split="false">PIC2</button>
-            <button class="secondary-btn" data-w="1263.9" data-h="1109.0" data-split="false">PIC3</button>
-            <button class="secondary-btn" data-w="1143.0" data-h="998.0" data-split="false">PIC-H1</button>
-            <button class="secondary-btn" data-w="1143.0" data-h="1147.8" data-split="false">PIC-H2</button>
-            <button class="secondary-btn" data-w="1143.0" data-h="1297.9" data-split="false">PIC-H3</button>
-            <button class="secondary-btn" data-w="1556.0" data-h="788.9" data-split="false">PIC-SIDE1</button>
-            <button class="secondary-btn" data-w="1807.5" data-h="938.8" data-split="false">PIC-SIDE2</button>
-            <button class="secondary-btn" data-w="2069.1" data-h="1068.3" data-split="false">PIC-SIDE3</button>
-            <button class="secondary-btn" data-w="811.8" data-h="811.8" data-split="true">PIC-SPLIT1</button>
-            <button class="secondary-btn" data-w="938.8" data-h="938.8" data-split="true">PIC-SPLIT2</button>
-            <button class="secondary-btn" data-w="1068.3" data-h="1068.3" data-split="true">PIC-SPLIT3</button>
-            <button class="secondary-btn" data-w="1269.0" data-h="1228.3" data-split="true">PIC-SPLIT4</button>
+            <button class="secondary-btn" data-w="959.1" data-h="806.7" data-split="false" data-name="PIC1">PIC1</button>
+            <button class="secondary-btn" data-w="1111.5" data-h="959.1" data-split="false" data-name="PIC2">PIC2</button>
+            <button class="secondary-btn" data-w="1263.9" data-h="1109.0" data-split="false" data-name="PIC3">PIC3</button>
+            <button class="secondary-btn" data-w="1143.0" data-h="998.0" data-split="false" data-name="PIC-H1">PIC-H1</button>
+            <button class="secondary-btn" data-w="1143.0" data-h="1147.8" data-split="false" data-name="PIC-H2">PIC-H2</button>
+            <button class="secondary-btn" data-w="1143.0" data-h="1297.9" data-split="false" data-name="PIC-H3">PIC-H3</button>
+            <button class="secondary-btn" data-w="1556.0" data-h="788.9" data-split="false" data-name="PIC-SIDE1">PIC-SIDE1</button>
+            <button class="secondary-btn" data-w="1807.5" data-h="938.8" data-split="false" data-name="PIC-SIDE2">PIC-SIDE2</button>
+            <button class="secondary-btn" data-w="2069.1" data-h="1068.3" data-split="false" data-name="PIC-SIDE3">PIC-SIDE3</button>
+            <button class="secondary-btn" data-w="811.8" data-h="811.8" data-split="true" data-name="PIC-SPLIT1">PIC-SPLIT1</button>
+            <button class="secondary-btn" data-w="938.8" data-h="938.8" data-split="true" data-name="PIC-SPLIT2">PIC-SPLIT2</button>
+            <button class="secondary-btn" data-w="1068.3" data-h="1068.3" data-split="true" data-name="PIC-SPLIT3">PIC-SPLIT3</button>
+            <button class="secondary-btn" data-w="1269.0" data-h="1228.3" data-split="true" data-name="PIC-SPLIT4">PIC-SPLIT4</button>
         </div>
 
-        <div class="section-title">Wrap</div>
-        <div class="row">
-            <div>
-                <label for="sideWrap">SIDE WRAP (mm)</label>
-                <input type="number" id="sideWrap" value="44" min="0" step="0.5">
-            </div>
-            <div>
-                <label for="backWrap">BACK WRAP (mm)</label>
-                <input type="number" id="backWrap" value="15" min="0" step="0.5">
-            </div>
-        </div>
+        <input type="hidden" id="backWrap" value="15">
         <input type="hidden" id="bleed" value="45">
         <input type="hidden" id="guideLen" value="35">
         <div class="section-title">Export</div>
@@ -263,8 +257,39 @@ window.addEventListener('DOMContentLoaded', () => {
     let activeDragCnv = null;
     let intervalId = null;
     let isSplit = false;
+    let selectedPresetName = null; 
 
     function getNum(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+    
+    function mmToInchStr(mm) {
+        const totalInches = mm / 25.4;
+        const wholeInches = Math.floor(totalInches);
+        const frac = totalInches - wholeInches;
+        
+        const fractions = [
+            [0, ''], [1/16, '1/16"'], [1/8, '1/8"'], [3/16, '3/16"'],
+            [1/4, '1/4"'], [5/16, '5/16"'], [3/8, '3/8"'], [7/16, '7/16"'],
+            [1/2, '1/2"'], [9/16, '9/16"'], [5/8, '5/8"'], [11/16, '11/16"'],
+            [3/4, '3/4"'], [13/16, '13/16"'], [7/8, '7/8"'], [15/16, '15/16"'],
+            [1, '']
+        ];
+        let closest = fractions[0], minDiff = Math.abs(frac - fractions[0][0]);
+        for (const f of fractions) {
+            const diff = Math.abs(frac - f[0]);
+            if (diff < minDiff) { minDiff = diff; closest = f; }
+        }
+        let w = wholeInches;
+        if (closest[0] === 1) { w += 1; }
+        const fracStr = (closest[0] === 0 || closest[0] === 1) ? '' : closest[1];
+        if (w === 0 && fracStr) return `${fracStr}`;
+        if (!fracStr) return `${w}"`;
+        return `${w} ${fracStr}`;
+    }
+
+    function mmLabel(mm) {
+        return `${fmt(mm)}mm (${mmToInchStr(mm)})`;
+    }
 
     function getDims() {
         const cW       = getNum('cW');
@@ -544,6 +569,7 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('cW').value = btn.dataset.w;
             document.getElementById('cH').value = btn.dataset.h;
             document.getElementById('sideWrap').value = 44;
+            selectedPresetName = btn.dataset.name || null;
             const targetSplit = btn.dataset.split === 'true';
             if (isSplit !== targetSplit) {
                 isSplit = targetSplit;
@@ -557,9 +583,14 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    ['cW','cH','sideWrap','backWrap'].forEach(id => {
-        document.getElementById(id).addEventListener('input', drawCnv);
+    
+    ['cW','cH'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            selectedPresetName = null;
+            drawCnv();
+        });
     });
+    document.getElementById('sideWrap').addEventListener('input', drawCnv);
     document.getElementById('fn').addEventListener('input', drawCnv);
 
     function fmt(n) { return Number.isInteger(n) ? n.toString() : n.toFixed(1); }
@@ -679,16 +710,41 @@ window.addEventListener('DOMContentLoaded', () => {
         bc.fillStyle = '#ffffff'; bc.fillRect(batPxW, batPxH, intPxW, intPxH);
         pc.drawImage(back, bx, fy); pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(bx, fy, fw, fh);
         const intX1 = bx+batPxW, intX2 = bx+batPxW+intPxW, intY1 = fy+batPxH, intY2 = fy+batPxH+intPxH;
-        drawMeasurement(pc, intX1, intY1+18, intX2, intY1+18, `${fmt(d.cW-d.sideWrap*2)}mm`, 'h', 'below');
-        drawMeasurement(pc, intX1+18, intY1, intX1+18, intY2, `${fmt(d.cH-d.sideWrap*2)}mm`, 'v', 'right');
+
+        
+        drawMeasurement(pc, intX1, intY1+18, intX2, intY1+18, mmLabel(d.cW-d.sideWrap*2), 'h', 'below');
+        
+        const hLineX = intX1 + 18;
+        const tk = 5;
+        pc.save();
+        pc.strokeStyle = '#333'; pc.fillStyle = '#333'; pc.lineWidth = 1;
+        
+        pc.beginPath(); pc.moveTo(hLineX, intY1); pc.lineTo(hLineX, intY2); pc.stroke();
+        
+        pc.beginPath(); pc.moveTo(hLineX-tk, intY1); pc.lineTo(hLineX+tk, intY1); pc.stroke();
+        pc.beginPath(); pc.moveTo(hLineX-tk, intY2); pc.lineTo(hLineX+tk, intY2); pc.stroke();
+        
+        const hTextY = Math.max(intY1 + 60, (intY1 + intY2) / 2);
+        pc.font = '15px Arial, sans-serif';
+        pc.save(); pc.translate(hLineX + 20, hTextY); pc.rotate(-Math.PI/2);
+        pc.textAlign = 'center'; pc.fillText(mmLabel(d.cH-d.sideWrap*2), 0, 0); pc.restore();
+        pc.restore();
+
         if (showEdgeBatten !== false) {
             const batMidY = fy + Math.round(fh / 2);
-            drawMeasurement(pc, bx+fw-batPxW, batMidY, bx+fw, batMidY, `${fmt(d.sideWrap)}mm`, 'h', 'above_left');
+            drawMeasurement(pc, bx+fw-batPxW, batMidY, bx+fw, batMidY, mmLabel(d.sideWrap), 'h', 'above_left');
         }
     }
 
+    function getProofTitle(fn, presetName) {
+        if (fn && presetName) return `${fn} — ${presetName}`;
+        if (fn) return fn;
+        if (presetName) return presetName;
+        return '';
+    }
+
     document.getElementById('jpgBtn').addEventListener('click', () => {
-        const d  = getDims(); const fn = document.getElementById('fn').value || 'canvas';
+        const d  = getDims(); const fn = document.getElementById('fn').value.trim();
         if (isSplit) generateSplitProof(d, fn); else generateSingleProof(d, fn);
     });
 
@@ -701,17 +757,30 @@ window.addEventListener('DOMContentLoaded', () => {
         const isoTotalW = ifw + isw, isoTotalH = ifh + ith, panelMaxH = Math.max(frontH, isoTotalH), isoLS = Math.round(MARGIN * 0.40);
         const TOTAL_W = (MARGIN-isoLS)*2 + isoTotalW + GAP + frontW + GAP + frontW + 60, TOTAL_H = TOP_H + panelMaxH + 140;
         const proof = document.createElement('canvas'); proof.width = TOTAL_W; proof.height = TOTAL_H;
-        const pc = proof.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, TOTAL_W, TOTAL_H); pc.fillStyle = '#000'; pc.font = 'bold 26px Arial'; pc.textAlign = 'center'; pc.fillText(fn ? `${fn} — CANVAS PROOF` : 'CANVAS PROOF', TOTAL_W/2, 46);
+        const pc = proof.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, TOTAL_W, TOTAL_H);
+        pc.fillStyle = '#000'; pc.font = 'bold 26px Arial'; pc.textAlign = 'center';
+        const titleStr = getProofTitle(fn, selectedPresetName);
+        const proofLabel = titleStr ? `${titleStr} — CANVAS PROOF` : 'CANVAS PROOF';
+        pc.fillText(proofLabel, TOTAL_W/2, 46);
         const pY = TOP_H, iX = MARGIN - isoLS, fX = iX + isoTotalW + GAP, bX = fX + frontW + GAP, coI = Math.round((panelMaxH - isoTotalH) / 2), coF = Math.round((panelMaxH - frontH) / 2);
         drawIsoCanvas(pc, iX+isw, pY+coI+ith, d, ifw, ifh, isw, ith, woodColor, woodDark, woodLight, null, true);
         pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('ISOMETRIC VIEW', iX+isw+ifw/2, pY+coI+ith+ifh+22);
         const fImg = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, frontW, frontH, null);
         pc.save(); pc.beginPath(); pc.rect(fX, pY+coF, frontW, frontH); pc.clip(); pc.drawImage(fImg, fX, pY+coF, frontW, frontH); pc.restore(); pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(fX, pY+coF, frontW, frontH);
-        drawMeasurement(pc, fX, pY+coF-20, fX+frontW, pY+coF-20, `${fmt(d.cW)}mm`, 'h'); drawMeasurement(pc, fX-20, pY+coF, fX-20, pY+coF+frontH, `${fmt(d.cH)}mm`, 'v');
+        drawMeasurement(pc, fX, pY+coF-20, fX+frontW, pY+coF-20, mmLabel(d.cW), 'h');
+        drawMeasurement(pc, fX-20, pY+coF, fX-20, pY+coF+frontH, mmLabel(d.cH), 'v');
         pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('FRONT', fX+frontW/2, pY+coF+frontH+22);
         drawBackPanel(pc, bX, pY+coF, d, frontW, frontH, woodColor, null); pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('BACK', bX+frontW/2, pY+coF+frontH+22);
-        const discY = TOP_H + panelMaxH + 70; pc.font = '13px Arial'; pc.fillStyle = '#555'; pc.textAlign = 'center'; pc.fillText('This proof shows how your artwork will be cropped to fit the mechanism dimensions.', TOTAL_W/2, discY); pc.fillText('Please review the positioning and cropping carefully, then reply to confirm approval before production.', TOTAL_W/2, discY+20);
-        const a = document.createElement('a'); a.href = proof.toDataURL('image/jpeg', 0.93); a.download = `${fn} - CANVAS PROOF.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+        
+        const discY = TOP_H + panelMaxH + 70;
+        pc.font = '13px Arial'; pc.fillStyle = '#555'; pc.textAlign = 'center';
+        const presetStr = selectedPresetName ? `${selectedPresetName} ` : '';
+        pc.fillText('This proof shows how your artwork will appear on your canvas.', TOTAL_W/2, discY);
+        pc.fillText('Please check the image positioning and cropping carefully, then confirm your approval before we proceed to production.', TOTAL_W/2, discY+20);
+
+        const dlFn = fn ? `${fn} - CANVAS PROOF.jpg` : 'CANVAS PROOF.jpg';
+        const a = document.createElement('a'); a.href = proof.toDataURL('image/jpeg', 0.93); a.download = dlFn; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
     function generateSplitProof(d, fn) {
@@ -722,7 +791,11 @@ window.addEventListener('DOMContentLoaded', () => {
         const isoTouchW = ifw*2 + isw, isoGapW = ifw*2 + SEP + isw, isoBlockW = isoTouchW + GAP + isoGapW, isoH = ifh + ith, panelMaxH = Math.max(singleH, isoH);
         const TOTAL_W = MARGIN*2 + isoBlockW + SEC_GAP + doubleW + SEC_GAP + doubleW + 100, TOTAL_H = TOP_H + panelMaxH + 180;
         const proof = document.createElement('canvas'); proof.width = TOTAL_W; proof.height = TOTAL_H;
-        const pc = proof.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, TOTAL_W, TOTAL_H); pc.fillStyle = '#000'; pc.font = 'bold 26px Arial'; pc.textAlign = 'center'; pc.fillText(fn ? `${fn} — PICSPLIT CANVAS PROOF` : 'PICSPLIT CANVAS PROOF', TOTAL_W/2, 46);
+        const pc = proof.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, TOTAL_W, TOTAL_H);
+        pc.fillStyle = '#000'; pc.font = 'bold 26px Arial'; pc.textAlign = 'center';
+        const titleStr = getProofTitle(fn, selectedPresetName);
+        const proofLabel = titleStr ? `${titleStr} — PICSPLIT CANVAS PROOF` : 'PICSPLIT CANVAS PROOF';
+        pc.fillText(proofLabel, TOTAL_W/2, 46);
         const pY = TOP_H, coIso = Math.round((panelMaxH - isoH) / 2), coFlat = Math.round((panelMaxH - singleH) / 2);
         const isoTouchStartX = MARGIN, isoGapStartX = MARGIN + isoTouchW + GAP, frontStartX = MARGIN + isoBlockW + SEC_GAP, backStartX = frontStartX + doubleW + SEC_GAP;
         function drawIsoPair(startX, gap, isFirstPair) {
@@ -738,20 +811,31 @@ window.addEventListener('DOMContentLoaded', () => {
         pc.save(); pc.beginPath(); pc.rect(frontStartX, fy, singleW, singleH); pc.clip(); pc.drawImage(lFront, frontStartX, fy, singleW, singleH); pc.restore();
         pc.save(); pc.beginPath(); pc.rect(frontStartX+singleW, fy, singleW, singleH); pc.clip(); pc.drawImage(rFront, frontStartX+singleW, fy, singleW, singleH); pc.restore();
         pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(frontStartX, fy, singleW, singleH); pc.strokeRect(frontStartX+singleW, fy, singleW, singleH);
-        drawMeasurement(pc, frontStartX, fy-20, frontStartX+singleW, fy-20, `${fmt(d.cW)}mm`, 'h'); drawMeasurement(pc, frontStartX+singleW, fy-20, frontStartX+doubleW, fy-20, `${fmt(d.cW)}mm`, 'h'); drawMeasurement(pc, frontStartX, fy-46, frontStartX+doubleW, fy-46, `${fmt(d.cW*2)}mm TOTAL`, 'h'); drawMeasurement(pc, frontStartX-20, fy, frontStartX-20, fy+singleH, `${fmt(d.cH)}mm`, 'v');
+        drawMeasurement(pc, frontStartX, fy-20, frontStartX+singleW, fy-20, mmLabel(d.cW), 'h');
+        drawMeasurement(pc, frontStartX+singleW, fy-20, frontStartX+doubleW, fy-20, mmLabel(d.cW), 'h');
+        drawMeasurement(pc, frontStartX, fy-46, frontStartX+doubleW, fy-46, mmLabel(d.cW*2) + ' TOTAL', 'h');
+        drawMeasurement(pc, frontStartX-20, fy, frontStartX-20, fy+singleH, mmLabel(d.cH), 'v');
         pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.fillText('LEFT', frontStartX+singleW/2, fy+singleH+22); pc.fillText('RIGHT', frontStartX+singleW+singleW/2, fy+singleH+22); pc.fillText('FRONT VIEW', frontStartX+doubleW/2, fy+singleH+42);
         drawBackPanel(pc, backStartX, fy, d, singleW, singleH, woodColor, 'left',  false); drawBackPanel(pc, backStartX+singleW, fy, d, singleW, singleH, woodColor, 'right', false);
         pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(backStartX, fy, singleW, singleH); pc.strokeRect(backStartX+singleW, fy, singleW, singleH);
         const batPxW = Math.round(singleW * (d.sideWrap / d.cW)), batMidY = fy + Math.round(singleH / 2), centreX1 = backStartX + singleW - batPxW, centreX2 = backStartX + singleW + batPxW;
-        drawMeasurement(pc, centreX1, batMidY, centreX2, batMidY, `${fmt(d.sideWrap * 2)}mm`, 'h', 'above_left');
-        drawMeasurement(pc, backStartX + (singleW * 2) - batPxW, batMidY, backStartX + (singleW * 2), batMidY, `${fmt(d.sideWrap)}mm`, 'h', 'above_left');
+        drawMeasurement(pc, centreX1, batMidY, centreX2, batMidY, mmLabel(d.sideWrap * 2), 'h', 'above_left');
+        drawMeasurement(pc, backStartX + (singleW * 2) - batPxW, batMidY, backStartX + (singleW * 2), batMidY, mmLabel(d.sideWrap), 'h', 'above_left');
         pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('RIGHT', backStartX+singleW/2, fy+singleH+22); pc.fillText('LEFT', backStartX+singleW+singleW/2, fy+singleH+22); pc.fillText('BACK VIEW', backStartX+doubleW/2, fy+singleH+42);
-        const discY = TOP_H + panelMaxH + 100; pc.font = '13px Arial'; pc.fillStyle = '#555'; pc.textAlign = 'center'; pc.fillText('This proof shows how your artwork will be cropped across both PICSPLIT canvasses.', TOTAL_W/2, discY); pc.fillText('Please review the positioning and cropping carefully, then reply to confirm approval before production.', TOTAL_W/2, discY+20);
-        const a = document.createElement('a'); a.href = proof.toDataURL('image/jpeg', 0.93); a.download = `${fn} - PICSPLIT PROOF.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+        
+        const discY = TOP_H + panelMaxH + 100;
+        pc.font = '13px Arial'; pc.fillStyle = '#555'; pc.textAlign = 'center';
+        const presetStr = selectedPresetName ? `${selectedPresetName} ` : '';
+        pc.fillText('This proof shows how your artwork will appear on your canvas.', TOTAL_W/2, discY);
+        pc.fillText('Please check the image positioning and cropping carefully, then confirm your approval before we proceed to production.', TOTAL_W/2, discY+20);
+
+        const dlFn = fn ? `${fn} - PICSPLIT PROOF.jpg` : 'PICSPLIT PROOF.jpg';
+        const a = document.createElement('a'); a.href = proof.toDataURL('image/jpeg', 0.93); a.download = dlFn; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
     document.getElementById('pdfBtn').addEventListener('click', () => {
-        const d  = getDims(); const fn = document.getElementById('fn').value || 'canvas'; const PT = 72 / 25.4;
+        const d  = getDims(); const fn = document.getElementById('fn').value.trim() || ''; const PT = 72 / 25.4;
         function buildPdf(side) {
             const pdf = new jsPDF({ orientation: d.totalW >= d.totalH ? 'landscape' : 'portrait', unit: 'pt', format: [d.totalW * PT, d.totalH * PT] });
             pdf.setFillColor(255,255,255); pdf.rect(0, 0, d.totalW*PT, d.totalH*PT, 'F');
@@ -771,12 +855,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const iW = d.cW-d.sideWrap*2, iH = d.cH-d.sideWrap*2, sideLabel = side ? ` | ${side.toUpperCase()} CANVAS` : ''; 
             pdf.setFontSize(12); pdf.setTextColor(0,0,0); 
             
-            const specLabel = `Template Height: ${fmt(d.totalH)}mm  |  Template Width: ${fmt(d.totalW)}mm  |  Finished Canvas Height: ${fmt(d.cH)}mm  |  Finished Canvas Width: ${fmt(d.cW)}mm  |  Canvas Frame Thickness: ${fmt(d.sideWrap)}mm  |  Internal Frame Width: ${fmt(iW)}mm  |  Internal Frame Height: ${fmt(iH)}mm`;
+            const titlePart = fn ? fn : (selectedPresetName || '');
+            const specLabel = `Template Height: ${fmt(d.totalH)}mm  |  Template Width: ${fmt(d.totalW)}mm  |  Finished Canvas Height: ${fmt(d.cH)}mm  |  Finished Canvas Width: ${fmt(d.cW)}mm  |  Frame: ${fmt(d.sideWrap)}mm  |  Internal Frame Width: ${fmt(iW)}mm  |  Internal Frame Height: ${fmt(iH)}mm`;
+            const labelLine = titlePart ? `${titlePart}${sideLabel}  |  ${specLabel}` : `${sideLabel ? sideLabel.replace(' | ','') + '  |  ' : ''}${specLabel}`;
             
-            pdf.text(`${fn}${sideLabel}  |  ${specLabel}`, (d.bleed+3)*PT, (d.totalH-d.bleed+10)*PT);
+            pdf.text(labelLine, (d.bleed+3)*PT, (d.totalH-d.bleed+10)*PT);
             return pdf;
         }
-        if (isSplit) { buildPdf('left').save(`${fn} - LEFT CANVAS.pdf`); setTimeout(() => buildPdf('right').save(`${fn} - RIGHT CANVAS.pdf`), 400); } else { buildPdf(null).save(`${fn}.pdf`); }
+        const saveName = fn || selectedPresetName || 'canvas';
+        if (isSplit) { buildPdf('left').save(`${saveName} - LEFT CANVAS.pdf`); setTimeout(() => buildPdf('right').save(`${saveName} - RIGHT CANVAS.pdf`), 400); } else { buildPdf(null).save(`${saveName}.pdf`); }
     });
     attachDrag(cnvLeft, null); new ResizeObserver(drawCnv).observe(container); drawCnv();
 });
