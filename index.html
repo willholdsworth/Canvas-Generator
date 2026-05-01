@@ -1,872 +1,1585 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canvas Generator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #ffffff;
-            color: #000000;
-            line-height: 1.5;
-        }
-        .container { padding: 5px 30px 30px 30px; width: 100%; }
-        h1 {
-            text-align: center;
-            margin: 0 0 10px 0;
-            font-size: clamp(1.5rem, 4vw, 2.5rem);
-            font-weight: bold;
-            padding-bottom: 15px;
-        }
-        .input-section { margin-bottom: 20px; }
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        input[type="number"], input[type="text"] {
-            width: 100%;
-            padding: 10px 12px;
-            height: 36px;
-            margin-bottom: 12px;
-            border: 1px solid #000;
-            border-radius: 4px;
-            font-size: 14px;
-            background: #fff;
-            color: #000;
-        }
-        input:focus { outline: none; box-shadow: inset 0 0 0 2px #000; }
-        .row { display: flex; gap: 15px; }
-        .row > div { flex: 1; }
-        .section-title {
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: #888;
-            border-top: 1px solid #ddd;
-            padding-top: 14px;
-            margin-top: 6px;
-            margin-bottom: 10px;
-        }
-        .button-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        button {
-            font-size: clamp(9px, 2vw, 14px);
-            padding: clamp(6px, 1.5vw, 10px);
-            flex: 1;
-            min-width: 80px;
-            min-height: 40px;
-            text-align: center;
-            border: 2px solid #000;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-            background: #fff;
-            color: #000;
-            transition: all 0.2s ease;
-        }
-        .secondary-btn:hover:not(:disabled) { background: #303030; color: #fff; }
-        .arrow-btn { background: #606060; color: #fff; font-size: clamp(16px,3vw,22px); min-width: 30px; }
-        .arrow-btn:hover:not(:disabled) { background: #303030; }
-        .arrow-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .green-btn { background: #4CAF50; color: #fff; border-color: #4CAF50; }
-        .green-btn:hover:not(:disabled) { background: #303030; border-color: #303030; }
-        .red-btn { background: #FF5733; color: #fff; border-color: #FF5733; }
-        .red-btn:hover:not(:disabled) { background: #303030; border-color: #303030; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIC Canvas Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --bg:#f5f5f5; --surface:#fff; --border:#d0d0d0; --accent:#000; --text:#222; --muted:#888; --warn:#cc3333; --ok:#2a8a2a; }
+html,body { height:100%; }
+body { background:var(--bg); color:var(--text); font-family:'Open Sans',sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+header { padding:9px 16px 8px; border-bottom:1px solid var(--border); display:flex; align-items:baseline; gap:12px; background:white; flex-shrink:0; }
+header h1 { font-size:1.05rem; font-weight:700; letter-spacing:-0.01em; color:var(--accent); }
+header span { font-size:0.65rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; }
+.layout { display:flex; flex:1; min-height:0; overflow:hidden; }
 
-        .picsplit-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-            padding: 10px 14px;
-            border: 2px solid #000;
-            border-radius: 8px;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s, color 0.2s;
-        }
-        .picsplit-toggle:hover { background: #f5f5f5; }
-        .picsplit-toggle.active { background: #000; color: #fff; }
-        .picsplit-toggle .ps-box {
-            width: 20px; height: 20px;
-            border: 2px solid currentColor;
-            border-radius: 4px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-            font-size: 13px;
-            font-weight: 700;
-        }
-        .picsplit-toggle .ps-label {
-            font-size: 0.85rem;
-            font-weight: 800;
-            letter-spacing: 0.12em;
-        }
-        .picsplit-toggle .ps-sub {
-            font-size: 0.72rem;
-            opacity: 0.65;
-            font-weight: 400;
-            letter-spacing: 0;
-            margin-left: 4px;
-        }
+.sidebar { width:270px; flex-shrink:0; border-right:1px solid var(--border); overflow-y:auto; padding:10px 12px; background:white; display:flex; flex-direction:column; gap:0; }
+.section-label { font-size:0.55rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:6px; margin-top:11px; }
+.section-label:first-child { margin-top:0; }
+.field { margin-bottom:5px; }
+.field label { display:block; font-size:0.6rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; }
+.field input[type="number"], .field select { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Open Sans',sans-serif; font-size:0.78rem; padding:4px 7px; border-radius:4px; transition:border-color 0.15s; }
+.field input[type="number"]:focus, .field select:focus { outline:none; border-color:var(--accent); }
+.checkbox-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; font-size:0.65rem; color:var(--text); cursor:pointer; }
+.checkbox-row input[type="checkbox"] { width:13px; height:13px; cursor:pointer; accent-color:var(--accent); flex-shrink:0; }
+.preset-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin-bottom:6px; }
+.preset-btn { background:var(--bg); border:1px solid var(--border); color:var(--muted); font-family:'Open Sans',sans-serif; font-size:0.6rem; letter-spacing:0.05em; padding:4px 2px; border-radius:4px; cursor:pointer; transition:all 0.15s; text-align:center; }
+.preset-btn:hover { border-color:var(--accent); color:var(--accent); }
+.preset-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+.row2 { display:flex; gap:5px; }
+.row2 .field { flex:1; }
+.info-box { background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:10px; margin-top:10px; font-size:0.7rem; line-height:1.9; }
+.info-row { display:flex; justify-content:space-between; }
+.info-row .lbl { color:var(--muted); }
+.info-row .val { color:var(--text); }
+.info-row .val.warn { color:var(--warn); }
+.info-row .val.ok { color:var(--ok); }
+.alert { border-radius:4px; padding:7px 9px; font-size:0.67rem; line-height:1.5; margin-top:6px; }
+.alert.warn { background:rgba(204,51,51,0.07); border:1px solid rgba(204,51,51,0.3); color:#b02020; }
+.alert.ok { background:rgba(42,138,42,0.07); border:1px solid rgba(42,138,42,0.25); color:#1a6a1a; }
+.input-reset-wrap { display:flex; border:1px solid var(--border); border-radius:4px; overflow:hidden; background:var(--bg); transition:border-color 0.15s; }
+.input-reset-wrap:focus-within { border-color:var(--accent); }
+.input-reset-wrap input[type="number"] { flex:1; background:transparent; border:none; outline:none; color:var(--text); font-family:'Open Sans',sans-serif; font-size:0.78rem; padding:4px 7px; width:0; }
+.reset-side-btn { display:none; align-items:center; justify-content:center; width:26px; background:transparent; border:none; border-right:1px solid var(--border); color:var(--muted); font-size:0.9rem; cursor:pointer; transition:background 0.15s,color 0.15s; flex-shrink:0; order:-1; }
+.reset-side-btn.visible { display:flex; }
+.reset-side-btn:hover { background:var(--accent); color:#fff; }
 
-        .canvas-container {
-            margin-top: 20px;
-            border: 1px solid #ccc;
-            background: #aaa;
-            width: 100%;
-            overflow: hidden;
-        }
-        .split-canvas-wrapper {
-            display: flex;
-            flex-direction: row;
-            width: 100%;
-        }
-        .canvas-half {
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
-        }
-        .canvas-half canvas {
-            display: block;
-            width: 100%;
-            height: auto;
-            touch-action: none;
-            user-select: none;
-        }
-        .split-label {
-            text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            color: #fff;
-            background: #444;
-            padding: 3px 0;
-        }
-        canvas {
-            touch-action: none;
-            user-select: none;
-            display: block;
-            margin: 0 auto;
-            cursor: default;
-        }
-        canvas.has-image { cursor: grab; }
-        canvas.dragging  { cursor: grabbing; }
-        .loader {
-            border: 6px solid #f3f3f3;
-            border-top: 6px solid #3498db;
-            border-radius: 50%;
-            width: 1.2rem; height: 1.2rem;
-            animation: spin 1s linear infinite;
-            display: none;
-            margin: 8px auto;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-    </style>
+.vis-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); min-width:0; position:relative; }
+.view-toggle { display:flex; margin:12px 0 0 12px; background:white; border:1px solid var(--border); border-radius:20px; padding:3px; flex-shrink:0; position:absolute; top:0; left:0; z-index:10; cursor:pointer; user-select:none; }
+.pill-track { position:relative; display:flex; border-radius:16px; overflow:hidden; }
+.pill-slider { position:absolute; top:0; left:0; width:50%; height:100%; background:var(--accent); border-radius:16px; transition:transform 0.25s cubic-bezier(0.4,0,0.2,1); z-index:0; }
+.pill-slider.right { transform:translateX(100%); }
+.view-btn { position:relative; z-index:1; padding:5px 18px; font-family:'Open Sans',sans-serif; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; background:transparent; border:none; color:var(--muted); cursor:pointer; border-radius:16px; transition:color 0.2s; pointer-events:none; display:flex; align-items:center; justify-content:center; }
+.view-btn.active { color:#fff; }
+.analysis-panel { position:absolute; top:52px; left:12px; z-index:10; background:white; border:1px solid var(--border); border-radius:6px; padding:10px; width:230px; font-size:0.7rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+canvas#vis { display:block; width:100%; height:100%; }
+
+.canvas-panel { width:340px; flex-shrink:0; border-left:1px solid var(--border); overflow-y:auto; background:white; display:flex; flex-direction:column; }
+.canvas-panel-header { padding:9px 14px 8px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.canvas-panel-header h2 { font-size:0.75rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
+.artwork-toggle-btn { font-size:0.6rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; padding:4px 10px; border:1px solid var(--accent); border-radius:20px; background:var(--accent); color:#fff; cursor:pointer; transition:all 0.2s; white-space:nowrap; font-family:'Open Sans',sans-serif; }
+.artwork-toggle-btn.off { background:#fff; color:var(--accent); }
+.canvas-panel-body { padding:12px; flex:1; display:flex; flex-direction:column; gap:10px; }
+.cpanel-section { font-size:0.55rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:6px; }
+.cpanel-field { margin-bottom:6px; }
+.cpanel-field label { display:block; font-size:0.6rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; }
+.cpanel-field input[type="number"], .cpanel-field input[type="text"] { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Open Sans',sans-serif; font-size:0.78rem; padding:4px 7px; border-radius:4px; height:28px; }
+.cpanel-field input:focus { outline:none; border-color:var(--accent); }
+.cpanel-row { display:flex; gap:6px; }
+.cpanel-row .cpanel-field { flex:1; }
+.picsplit-toggle { display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:7px 10px; border:1px solid var(--accent); border-radius:6px; cursor:pointer; user-select:none; transition:background 0.2s,color 0.2s; font-size:0.72rem; }
+.picsplit-toggle:hover { background:#f5f5f5; }
+.picsplit-toggle.active { background:var(--accent); color:#fff; }
+.picsplit-toggle .ps-box { width:16px; height:16px; border:2px solid currentColor; border-radius:3px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; font-weight:700; }
+.canvas-container { border:1px solid var(--border); background:#aaa; overflow:hidden; }
+.split-canvas-wrapper { display:flex; flex-direction:row; width:100%; }
+.canvas-half { flex:1; min-width:0; overflow:hidden; }
+.canvas-half canvas { display:block; width:100%; height:auto; touch-action:none; user-select:none; }
+.split-label { text-align:center; font-size:10px; font-weight:700; letter-spacing:0.08em; color:#fff; background:#444; padding:2px 0; }
+canvas.has-image { cursor:grab; }
+canvas.dragging { cursor:grabbing; }
+.canvas-container canvas { display:block; touch-action:none; user-select:none; cursor:default; width:100%; height:auto; }
+.canvas-container canvas.has-image { cursor:grab; }
+.canvas-container canvas.dragging { cursor:grabbing; }
+.arrow-row { display:flex; gap:4px; margin-bottom:6px; }
+.arrow-row button, .action-row button { font-family:'Open Sans',sans-serif; font-size:0.65rem; font-weight:600; padding:5px 8px; border:1px solid var(--accent); border-radius:20px; cursor:pointer; background:#fff; color:var(--accent); transition:all 0.15s; white-space:nowrap; }
+.arrow-row button:hover:not(:disabled), .action-row button:hover:not(:disabled) { background:var(--accent); color:#fff; }
+.arrow-row button:disabled { opacity:0.35; cursor:not-allowed; }
+.arrow-btn-arrow { font-size:1rem; padding:4px 10px; }
+.action-row { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:4px; }
+.action-row .btn-green { background:#4CAF50; color:#fff; border-color:#4CAF50; }
+.action-row .btn-green:hover { background:#303030; border-color:#303030; }
+.action-row .btn-red { background:#FF5733; color:#fff; border-color:#FF5733; }
+.action-row .btn-red:hover { background:#303030; border-color:#303030; }
+.url-fetch-wrap { display:flex; border:1px solid var(--border); border-radius:4px; overflow:hidden; height:28px; margin-bottom:4px; }
+.url-fetch-wrap input { flex:1; border:none; background:var(--bg); font-family:'Open Sans',sans-serif; font-size:0.72rem; padding:0 8px; outline:none; color:var(--text); }
+.url-fetch-wrap button { flex:0 0 auto; border:none; border-left:1px solid var(--border); background:#fff; color:var(--text); font-family:'Open Sans',sans-serif; font-size:0.62rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; padding:0 10px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px; }
+.url-fetch-wrap button:hover { background:var(--accent); color:#fff; }
+.url-status { font-size:0.6rem; margin-top:2px; min-height:14px; }
+.loader { border:4px solid #f3f3f3; border-top:4px solid #3498db; border-radius:50%; width:1rem; height:1rem; animation:spin 1s linear infinite; display:none; margin:4px auto; }
+@keyframes spin { 100% { transform:rotate(360deg); } }
+.dpi-note { font-size:0.62rem; color:var(--muted); text-align:center; min-height:14px; }
+.hidden { display:none !important; }
+@media (max-width:900px) { body { overflow:auto; } .layout { flex-direction:column; overflow:visible; } .sidebar,.vis-panel,.canvas-panel { width:100%; height:auto; border:none; border-bottom:1px solid var(--border); } .vis-panel { height:60vw; min-height:300px; } }
+</style>
 </head>
 <body>
-<div class="container">
-    <h1>CANVAS GENERATOR™</h1>
-    <div class="input-section">
-        <div class="section-title">Canvas Face Size</div>
-        <div class="row">
-            <div>
-                <label for="cW">WIDTH (mm)</label>
-                <input type="number" id="cW" value="1000" min="10">
-            </div>
-            <div>
-                <label for="cH">HEIGHT (mm)</label>
-                <input type="number" id="cH" value="1000" min="10">
-            </div>
-            <div>
-                <label for="sideWrap">FRAME (mm)</label>
-                <input type="number" id="sideWrap" value="44" min="0" step="0.5">
-            </div>
-        </div>
+<header>
+  <h1>PIC CANVAS TOOL</h1>
+  <span>Future Automation</span>
+</header>
+<div class="layout">
 
-        <label class="picsplit-toggle" id="picsplitToggle" onclick="return false;">
-            <span class="ps-box" id="psBox"></span>
-            <span>
-                <span class="ps-label">PICSPLIT</span>
-                <span class="ps-sub">— Split image across two canvasses</span>
-            </span>
-        </label>
-
-        <div class="button-group" id="presetBtns">
-            <button class="secondary-btn" data-w="938" data-h="808" data-split="false" data-name="PIC1">PIC1</button>
-            <button class="secondary-btn" data-w="938" data-h="958" data-split="false" data-name="PIC2">PIC2</button>
-            <button class="secondary-btn" data-w="938" data-h="1108" data-split="false" data-name="PIC3">PIC3</button>
-            <button class="secondary-btn" data-w="1143" data-h="998" data-split="false" data-name="PIC-H1">PIC-H1</button>
-            <button class="secondary-btn" data-w="1143" data-h="1148" data-split="false" data-name="PIC-H2">PIC-H2</button>
-            <button class="secondary-btn" data-w="1143" data-h="1298" data-split="false" data-name="PIC-H3">PIC-H3</button>
-            <button class="secondary-btn" data-w="1556" data-h="788" data-split="false" data-name="PICSIDE-1">PICSIDE-1</button>
-            <button class="secondary-btn" data-w="1808" data-h="938" data-split="false" data-name="PICSIDE-2">PICSIDE-2</button>
-            <button class="secondary-btn" data-w="2068" data-h="1068" data-split="false" data-name="PICSIDE-3">PICSIDE-3</button>
-            <button class="secondary-btn" data-w="813" data-h="813" data-split="true" data-name="PIC-SPLIT1">PIC-SPLIT1</button>
-            <button class="secondary-btn" data-w="938" data-h="938" data-split="true" data-name="PIC-SPLIT2">PIC-SPLIT2</button>
-            <button class="secondary-btn" data-w="1068" data-h="1068" data-split="true" data-name="PIC-SPLIT3">PIC-SPLIT3</button>
-            <button class="secondary-btn" data-w="1268" data-h="1228" data-split="true" data-name="PIC-SPLIT4">PIC-SPLIT4</button>
-        </div>
-
-        <input type="hidden" id="backWrap" value="15">
-        <input type="hidden" id="bleed" value="45">
-        <input type="hidden" id="guideLen" value="35">
-        <div class="section-title">Export</div>
-        <label for="fn">FILE NAME</label>
-        <input type="text" id="fn" placeholder="Eg. CANVAS-1000x1000">
+  <aside class="sidebar">
+    <div class="section-label">Mechanism Preset</div>
+    <div class="preset-grid" id="presetGrid"></div>
+    <div class="section-label">Moving Frame</div>
+    <div class="row2">
+      <div class="field"><label>Width (mm)</label><input type="number" id="frameW" value="758" min="10"></div>
+      <div class="field"><label>Height (mm)</label><input type="number" id="frameH" value="718" min="10"></div>
     </div>
-
-    <input type="file" id="imgLdr" accept="image/*" style="display:none">
-    <div class="button-group">
-        <button class="arrow-btn" id="leftArrow">←</button>
-        <button class="arrow-btn" id="rightArrow">→</button>
-        <button class="arrow-btn" id="upArrow">↑</button>
-        <button class="arrow-btn" id="downArrow">↓</button>
-        <button class="secondary-btn" id="upBtn"><i class="fas fa-plus"></i> Add Image</button>
-        <button class="secondary-btn" id="rmvBtn"><i class="fas fa-trash"></i> Remove Image</button>
-        <button class="green-btn" id="jpgBtn"><i class="fas fa-image"></i> Artwork Proof</button>
-        <button class="red-btn" id="pdfBtn"><i class="fas fa-file-pdf"></i> Generate PDF</button>
+    <div class="field"><label>Travel (mm)</label><input type="number" id="travel" value="560" min="0"></div>
+    <div class="section-label">Canvas (PIC) Size</div>
+    <div class="row2">
+      <div class="field"><label>Width (mm)</label><input type="number" id="canvW" value="850" min="10"></div>
+      <div class="field"><label>Height (mm)</label><input type="number" id="canvH" value="720" min="10"></div>
     </div>
-    <div id="loader" class="loader"></div>
-    <div class="canvas-container" id="canvasContainer">
+    <div class="field"><label>Canvas Frame Thickness (mm)</label><input type="number" id="canvFrame" value="44" min="1" max="200"></div>
+    <label class="checkbox-row" id="hookTopRow">
+      <input type="checkbox" id="hookTop" checked>
+      <span id="hookTopLabel">Hook canvas to inside top edge of moving frame</span>
+    </label>
+    <div id="picOnlyFields">
+      <div class="section-label">Motor Tube</div>
+      <div class="row2">
+        <div class="field"><label>Width (mm)</label><div class="input-reset-wrap"><input type="number" id="motorTubeW" min="10"><button class="reset-side-btn" id="motorTubeWReset" title="Reset to default">&#x21BA;</button></div></div>
+        <div class="field"><label>Height (mm)</label><div class="input-reset-wrap"><input type="number" id="motorTubeH" min="1"><button class="reset-side-btn" id="motorTubeHReset" title="Reset to default">&#x21BA;</button></div></div>
+      </div>
+      <div class="field"><label>Motor bottom to frame bottom distance (mm)</label><div class="input-reset-wrap"><input type="number" id="motorOffset" value="35" min="35"><button class="reset-side-btn" id="motorOffsetReset" title="Reset to default (35mm)">&#x21BA;</button></div></div>
+      <div class="field"><label id="plateToApertureLabel">Cassette bottom to aperture top — offset (mm)</label><div class="input-reset-wrap"><input type="number" id="motorToApertureOffset" value="0" min="0"><button class="reset-side-btn" id="motorToApertureOffsetReset" title="Reset to 0mm">&#x21BA;</button></div></div>
+    </div>
+    <div id="sideOnlyFields" class="hidden">
+      <div class="section-label">Wall Plate</div>
+      <div class="field"><label>Plate to aperture edge — offset (mm)</label><div class="input-reset-wrap"><input type="number" id="sideApertureOffset" value="0"><button class="reset-side-btn" id="sideApertureOffsetReset" title="Reset to 0mm">&#x21BA;</button></div></div>
+    </div>
+    <div class="section-label">TV / Display</div>
+    <div class="field"><label>Select by diagonal</label><select id="tvDiag"></select></div>
+    <div class="row2">
+      <div class="field"><label>TV Width (mm)</label><input type="number" id="tvW" value="708" min="0"></div>
+      <div class="field"><label>TV Height (mm)</label><input type="number" id="tvH" value="398" min="0"></div>
+    </div>
+    <div class="field"><label>Aperture Thickness (mm)</label><input type="number" id="apertureThick" value="30" min="0"></div>
+    <label class="checkbox-row"><input type="checkbox" id="displayAbove"><span id="displayAboveLabel">Mount display above motor tube</span></label>
+    <div style="margin-top:9px;">
+      <button id="exportProofBtn" style="width:100%;background:#000;color:#fff;border:none;border-radius:4px;padding:9px 0;font-family:'Open Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='#000'">&#8681; Export Mechanism Proof</button>
+    </div>
+    <div class="section-label" style="margin-top:14px;">Analysis</div>
+    <div class="info-box" id="infoBox"></div>
+    <div id="alerts"></div>
+  </aside>
+
+  <main class="vis-panel">
+    <div class="view-toggle" onclick="togglePosition()" id="pillToggle">
+      <div class="pill-track">
+        <div class="pill-slider" id="pillSlider"></div>
+        <button class="view-btn active" id="btnUp">UP</button>
+        <button class="view-btn" id="btnDown">DOWN</button>
+      </div>
+    </div>
+    <canvas id="vis"></canvas>
+  </main>
+
+  <section class="canvas-panel">
+    <div class="canvas-panel-header">
+      <h2>Canvas Generator</h2>
+      <button class="artwork-toggle-btn off" id="artworkToggleBtn" disabled style="opacity:0.35;cursor:not-allowed;"><i class="fas fa-eye-slash"></i> Artwork Off</button>
+    </div>
+    <div class="canvas-panel-body">
+
+      <div>
+        <div class="cpanel-section">Artwork Image</div>
+        <div class="cpanel-field"><label>Rosenstiels URL</label>
+          <div class="url-fetch-wrap">
+            <input type="text" id="imgUrl" placeholder="https://www.rosenstiels.com/art/print/...">
+            <button id="fetchUrlBtn"><i class="fas fa-link"></i> Fetch</button>
+          </div>
+          <div class="url-status" id="urlStatus"></div>
+        </div>
+        <div class="arrow-row">
+          <button class="arrow-btn-arrow" id="leftArrow" disabled>&#8592;</button>
+          <button class="arrow-btn-arrow" id="rightArrow" disabled>&#8594;</button>
+          <button class="arrow-btn-arrow" id="upArrow" disabled>&#8593;</button>
+          <button class="arrow-btn-arrow" id="downArrow" disabled>&#8595;</button>
+          <button id="upBtn" style="margin-left:auto;"><i class="fas fa-plus"></i> Add Image</button>
+          <button id="rmvBtn"><i class="fas fa-trash"></i> Remove</button>
+        </div>
+        <div class="loader" id="loader"></div>
+        <div class="dpi-note" id="dpiNote"></div>
+      </div>
+
+      <div>
+        <div class="cpanel-section">Export</div>
+        <div class="cpanel-field"><label>File Name</label><input type="text" id="fn" placeholder="Eg. CANVAS-1000x1000"></div>
+        <div class="action-row">
+          <button class="btn-green" id="jpgBtn"><i class="fas fa-image"></i> Artwork Proof</button>
+          <button class="btn-red" id="pdfBtn"><i class="fas fa-file-pdf"></i> Canvas PDF</button>
+        </div>
+      </div>
+
+      <div class="canvas-container" id="canvasContainer">
         <canvas id="cnvSingle"></canvas>
+      </div>
+      <input type="file" id="imgLdr" accept="image/*" style="display:none">
+      <input type="hidden" id="backWrap" value="15">
+      <input type="hidden" id="bleed" value="45">
+      <input type="hidden" id="guideLen" value="35">
     </div>
+  </section>
+
 </div>
-
 <script>
-window.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('canvasContainer');
-    let cnvLeft  = document.getElementById('cnvSingle');
-    let cnvRight = null;
-    let upImg    = null;
-    let imgXOffset = 0, imgYOffset = 0;
-    let isDragging = false, dragStartX = 0, dragStartY = 0;
-    let activeDragCnv = null;
-    let intervalId = null;
-    let isSplit = false;
-    let selectedPresetName = null; 
+let CANVAS_FRAME = 44;
+const FRAME_STROKE = 20;
+const PIC_MOTOR_W = 797, PIC_MOTOR_H = 82, PIC_MOTOR_TO_APERTURE = 94;
+const PICH_MOTOR_W = 1000, PICH_MOTOR_H = 134, PICH_MOTOR_TO_APERTURE = 79;
+const PICSIDE_PLATE_W = 280, PICSIDE_PLATE_H = 650, PICSIDE_PLATE_TO_APERTURE = 44;
 
-    function getNum(id) { return parseFloat(document.getElementById(id).value) || 0; }
+const PRESETS = [
+  { name:'PIC1',     frameW:758,  frameH:718,  travel:560,  canvW:850,  canvH:720,  type:'pic' },
+  { name:'PIC2',     frameW:758,  frameH:868,  travel:710,  canvW:850,  canvH:870,  type:'pic' },
+  { name:'PIC3',     frameW:758,  frameH:1018, travel:860,  canvW:850,  canvH:1020, type:'pic' },
+  { name:'PIC-H1',   frameW:1012, frameH:910,  travel:710,  canvW:1055, canvH:910,  type:'pich' },
+  { name:'PIC-H2',   frameW:1012, frameH:1060, travel:860,  canvW:1055, canvH:1060, type:'pich' },
+  { name:'PIC-H3',   frameW:1012, frameH:1210, travel:1010, canvW:1055, canvH:1210, type:'pich' },
+  { name:'PIC-SIDE1',frameW:1468, frameH:700,  travel:1184, canvW:1468, canvH:700,  type:'side' },
+  { name:'PICSPLIT1', frameW:725, frameH:725,  travel:575,  canvW:725,  canvH:725,  type:'split', splitPlateW:135, splitPlateH:650, splitVMode:'equidistant' },
+  { name:'PICSPLIT2', frameW:850, frameH:850,  travel:700,  canvW:850,  canvH:850,  type:'split', splitPlateW:135, splitPlateH:650, splitVMode:'bottom-extend', splitBaseFrameH:725 },
+  { name:'PICSPLIT3', frameW:980, frameH:980,  travel:825,  canvW:980,  canvH:980,  type:'split', splitPlateW:135, splitPlateH:830, splitVMode:'equidistant' },
+  { name:'PICSPLIT4', frameW:1180,frameH:1140, travel:900,  canvW:1180, canvH:1140, type:'split', splitPlateW:265, splitPlateH:1110,splitVMode:'equidistant' },
+];
 
-    
-    function mmToInchStr(mm) {
-        const totalInches = mm / 25.4;
-        const wholeInches = Math.floor(totalInches);
-        const frac = totalInches - wholeInches;
-        
-        const fractions = [
-            [0, ''], [1/16, '1/16"'], [1/8, '1/8"'], [3/16, '3/16"'],
-            [1/4, '1/4"'], [5/16, '5/16"'], [3/8, '3/8"'], [7/16, '7/16"'],
-            [1/2, '1/2"'], [9/16, '9/16"'], [5/8, '5/8"'], [11/16, '11/16"'],
-            [3/4, '3/4"'], [13/16, '13/16"'], [7/8, '7/8"'], [15/16, '15/16"'],
-            [1, '']
-        ];
-        let closest = fractions[0], minDiff = Math.abs(frac - fractions[0][0]);
-        for (const f of fractions) {
-            const diff = Math.abs(frac - f[0]);
-            if (diff < minDiff) { minDiff = diff; closest = f; }
-        }
-        let w = wholeInches;
-        if (closest[0] === 1) { w += 1; }
-        const fracStr = (closest[0] === 0 || closest[0] === 1) ? '' : closest[1];
-        if (w === 0 && fracStr) return `${fracStr}`;
-        if (!fracStr) return `${w}"`;
-        return `${w} ${fracStr}`;
+let animT=0, animTarget=0, animRAF=null, activePreset='PIC1', forcePICH=false, forceSIDE=false;
+let motorTubeWOverride=null, motorTubeHOverride=null, motorToApertureOffsetOverride=null, sideApertureOffsetOverride=null;
+let activeSplitMeta={ splitPlateW:135, splitPlateH:650, splitVMode:'equidistant', splitBaseFrameH:null };
+
+let upImg=null, imgXOffset=0, imgYOffset=0, isDragging=false, dragStartX=0, dragStartY=0, activeDragCnv=null, intervalId=null;
+let isSplit=false, selectedPresetName=null, showArtwork=false;
+
+const container = document.getElementById('canvasContainer');
+let cnvLeft = document.getElementById('cnvSingle'), cnvRight=null;
+
+function g(id) { return parseFloat(document.getElementById(id).value)||0; }
+function s(id,v) { document.getElementById(id).value=v; }
+function getNum(id) { return parseFloat(document.getElementById(id).value)||0; }
+function fmt(n) { return Number.isInteger(n)?n.toString():n.toFixed(1); }
+
+function mmToInchStr(mm) {
+  const ti=mm/25.4, wi=Math.floor(ti), frac=ti-wi;
+  const fs=[[0,''],[1/16,'1/16"'],[1/8,'1/8"'],[3/16,'3/16"'],[1/4,'1/4"'],[5/16,'5/16"'],[3/8,'3/8"'],[7/16,'7/16"'],[1/2,'1/2"'],[9/16,'9/16"'],[5/8,'5/8"'],[11/16,'11/16"'],[3/4,'3/4"'],[13/16,'13/16"'],[7/8,'7/8"'],[15/16,'15/16"'],[1,'']];
+  let cl=fs[0], md=Math.abs(frac-fs[0][0]);
+  for(const f of fs){const d=Math.abs(frac-f[0]);if(d<md){md=d;cl=f;}}
+  let w=wi; if(cl[0]===1)w++;
+  const fs2=(cl[0]===0||cl[0]===1)?'':cl[1];
+  if(w===0&&fs2)return fs2; if(!fs2)return `${w}"`; return `${w} ${fs2}`;
+}
+function mmLabel(mm){ return `${fmt(mm)}mm (${mmToInchStr(mm)})`; }
+
+function isSPLIT(){ return activePreset==='PICSPLIT1'||activePreset==='PICSPLIT2'||activePreset==='PICSPLIT3'||activePreset==='PICSPLIT4'; }
+function isSIDE(){ return !isSPLIT()&&(forceSIDE||activePreset==='PIC-SIDE1'); }
+function isPICH(){ return !isSIDE()&&!isSPLIT()&&(forcePICH||activePreset==='PIC-H1'||activePreset==='PIC-H2'||activePreset==='PIC-H3'); }
+
+function updateSidebarForMode() {
+  const side=isSIDE(), split=isSPLIT();
+  document.getElementById('picOnlyFields').classList.toggle('hidden',side||split);
+  document.getElementById('sideOnlyFields').classList.toggle('hidden',!side);
+  document.getElementById('displayAboveLabel').textContent=side?'Mount display to the left of wall plate':'Mount display above motor tube';
+  const btnUp=document.getElementById('btnUp'), btnDown=document.getElementById('btnDown');
+  btnUp.textContent=side?'LEFT':(split?'OPEN':'UP');
+  btnDown.textContent=side?'RIGHT':(split?'CLOSED':'DOWN');
+  const displayAboveRow=document.getElementById('displayAbove').closest('label');
+  if(displayAboveRow)displayAboveRow.classList.toggle('hidden',split);
+}
+
+function togglePosition() {
+  setPosition(animTarget===0?1:0);
+}
+function setPosition(target) {
+  animTarget=target;
+  document.getElementById('btnUp').classList.toggle('active',target===0);
+  document.getElementById('btnDown').classList.toggle('active',target===1);
+  document.getElementById('pillSlider').classList.toggle('right',target===1);
+  if(animRAF)cancelAnimationFrame(animRAF);
+  const DURATION=600, startT=animT, endT=animTarget;
+  let startTime=null;
+  function step(ts) {
+    if(!startTime)startTime=ts;
+    const el=ts-startTime, pr=Math.min(el/DURATION,1), ease=pr<0.5?2*pr*pr:-1+(4-2*pr)*pr;
+    animT=startT+(endT-startT)*ease;
+    drawFrame(animT);
+    if(pr<1)animRAF=requestAnimationFrame(step); else{animRAF=null;animT=endT;}
+  }
+  animRAF=requestAnimationFrame(step);
+}
+
+function buildTVSelector() {
+  const sel=document.getElementById('tvDiag');
+  sel.innerHTML='<option value="0">Custom</option>';
+  for(let d=1;d<=98;d++){
+    const dm=d*25.4, w=Math.round(dm*16/9/Math.sqrt(1+(16/9)**2)), h=Math.round(dm/Math.sqrt(1+(16/9)**2));
+    const opt=document.createElement('option'); opt.value=d; opt.textContent=d+'" — '+w+' x '+h+' mm'; opt.dataset.w=w; opt.dataset.h=h;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change',()=>{ const opt=sel.options[sel.selectedIndex]; if(opt.dataset.w){s('tvW',opt.dataset.w);s('tvH',opt.dataset.h);applyTVDimToCanvas();updateInfo();draw();} });
+}
+
+function buildPresets() {
+  const grid=document.getElementById('presetGrid'); grid.innerHTML='';
+  PRESETS.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='preset-btn'+(p.name===activePreset?' active':'');
+    btn.textContent=p.name;
+    btn.onclick=()=>{
+      activePreset=p.name;
+      s('frameW',p.frameW); s('frameH',p.frameH); s('travel',p.travel);
+      const tvW=parseFloat(document.getElementById('tvW').value)||0;
+      const apertureThick=parseFloat(document.getElementById('apertureThick').value)||0;
+      const apertureW=tvW+apertureThick*2;
+      s('canvW',(p.type!=='split'&&apertureW>p.canvW)?apertureW:p.canvW);
+      s('canvH',p.canvH);
+      forcePICH=p.type==='pich'; forceSIDE=p.type==='side';
+      if(p.type==='split')activeSplitMeta={splitPlateW:p.splitPlateW,splitPlateH:p.splitPlateH,splitVMode:p.splitVMode,splitBaseFrameH:p.splitBaseFrameH||null};
+      motorTubeWOverride=null; motorTubeHOverride=null; motorToApertureOffsetOverride=null; sideApertureOffsetOverride=null;
+      buildPresets(); syncMotorTubeFields(); updateSidebarForMode(); updateInfo(); draw();
+      syncCgenFromVis(p.name, p.type==='split');
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function syncCgenFromVis(presetName, isSplitPreset) {
+  selectedPresetName = presetName;
+  const targetSplit = isSplitPreset;
+  if(isSplit !== targetSplit) {
+    isSplit=targetSplit;
+    // picsplit state managed by preset selection
+    imgXOffset=0; imgYOffset=0;
+    if(isSplit)setupSplitLayout(); else setupSingleLayout();
+  }
+  drawCnv(); updateDpiNote();
+}
+
+function getCalc() {
+  CANVAS_FRAME=parseFloat(document.getElementById('canvFrame').value)||44;
+  const frameW=g('frameW'), frameH=g('frameH'), travel=g('travel'), canvW=g('canvW'), canvH=g('canvH');
+  const tvW=g('tvW'), tvH=g('tvH'), apertureThick=Math.max(0,g('apertureThick')||5);
+  const hookTop=document.getElementById('hookTop').checked, displayAbove=document.getElementById('displayAbove').checked;
+  const side=isSIDE(), split=isSPLIT(), pich=isPICH();
+  if(split){
+    const plateW_mm=activeSplitMeta.splitPlateW, plateH_mm=activeSplitMeta.splitPlateH;
+    const splitVMode=activeSplitMeta.splitVMode, splitBaseFrameH=activeSplitMeta.splitBaseFrameH;
+    const outerCanvW=canvW+CANVAS_FRAME*2, outerCanvH=canvH+CANVAS_FRAME*2;
+    const plateToApertureBase=Math.max(25,CANVAS_FRAME+10), plateToApertureOffset=sideApertureOffsetOverride!==null?sideApertureOffsetOverride:0;
+    const plateToAperture=plateToApertureBase+plateToApertureOffset;
+    const canvExtraH=canvH-frameH, needsHorizBrace=canvExtraH>50;
+    const canvExtraW=outerCanvW-frameW, needsVertBrace=canvExtraW>200;
+    const apertureW=tvW>0?tvW+apertureThick*2:0, apertureH=tvH>0?tvH+apertureThick*2:frameH;
+    const gapBetweenPlates=(travel+CANVAS_FRAME)*2;
+    return { frameW,frameH,travel,canvW,canvH,tvW,tvH,apertureThick,outerCanvW,outerCanvH,hookTop,displayAbove:false,side:false,pich:false,split:true,plateW:plateW_mm,plateH:plateH_mm,splitVMode,splitBaseFrameH,plateToAperture,plateToApertureOffset,needsHorizBrace,needsVertBrace,canvExtraH,canvExtraW,apertureW,apertureH,gapBetweenPlates,canvMeetsInMiddle:true,motorW:0,motorH:0,motorOffset:0,actualMotorToAperture:0 };
+  }
+  if(side){
+    const outerCanvW=canvW+CANVAS_FRAME*2, outerCanvH=canvH+CANVAS_FRAME*2;
+    const plateToApertureBase=Math.max(25,CANVAS_FRAME+10), plateToApertureOffset=sideApertureOffsetOverride!==null?sideApertureOffsetOverride:0;
+    const plateToAperture=plateToApertureBase+plateToApertureOffset;
+    const canvExtraH=canvH-frameH, needsHorizBrace=canvExtraH>50, canvExtraW=canvW-frameW, needsVertBrace=canvExtraW>200;
+    return { frameW,frameH,travel,canvW,canvH,tvW,tvH,apertureThick,outerCanvW,outerCanvH,hookTop,displayAbove,side:true,pich:false,plateToAperture,plateToApertureOffset,needsHorizBrace,needsVertBrace,canvExtraH,canvExtraW,motorW:0,motorH:0,motorOffset:0,actualMotorToAperture:0 };
+  }
+  const defMotorW=pich?PICH_MOTOR_W:PIC_MOTOR_W, defMotorH=pich?PICH_MOTOR_H:PIC_MOTOR_H;
+  const motorW=motorTubeWOverride!==null?motorTubeWOverride:defMotorW;
+  const motorH=motorTubeHOverride!==null?motorTubeHOverride:defMotorH;
+  const motorOffset=parseFloat(document.getElementById('motorOffset').value)||35;
+  const motorToApertureBase=(pich?PICH_MOTOR_TO_APERTURE:PIC_MOTOR_TO_APERTURE)+(CANVAS_FRAME-44);
+  const motorToApertureOffset=motorToApertureOffsetOverride!==null?motorToApertureOffsetOverride:0;
+  const outerCanvW=canvW+CANVAS_FRAME*2, outerCanvH=canvH+CANVAS_FRAME*2, coverageH=outerCanvH+travel;
+  const needsCrossBrace=(canvH-frameH)>50;
+  const canvOverflowBelowFrame=(!displayAbove&&hookTop&&canvH>frameH)?(canvH-frameH):0;
+  const canvOverflowAboveFrame=(displayAbove&&!hookTop&&canvH>frameH)?(canvH-frameH):0;
+  const actualMotorToAperture=motorToApertureBase+5+canvOverflowBelowFrame+canvOverflowAboveFrame+motorToApertureOffset;
+  return { frameW,frameH,travel,canvW,canvH,tvW,tvH,apertureThick,outerCanvW,outerCanvH,coverageH,hookTop,displayAbove,side:false,pich,motorW,motorH,motorOffset,motorToApertureBase,motorToApertureOffset,actualMotorToAperture,needsCrossBrace,needsHorizBrace:needsCrossBrace,needsVertBrace:false };
+}
+
+function updateInfo() {
+  const c=getCalc(), box=document.getElementById('infoBox'), alerts=document.getElementById('alerts');
+  const apertureW=c.tvW>0?c.tvW+c.apertureThick*2:0, apertureH=c.tvH>0?c.tvH+c.apertureThick*2:0;
+  const MIN_EDGE_COVERAGE=25, MIN_SIDE_COVERAGE=25;
+  let rows=[], alertHTML='';
+  if(c.split){
+    const halfGap=(c.travel+CANVAS_FRAME), canvCoversAperture=apertureW>0?halfGap*2>=apertureW:true;
+    const overlapEach=apertureW>0?Math.round(halfGap-(apertureW/2)):0, bar=CANVAS_FRAME;
+    rows=[{label:'Canvas Width',val:c.canvW+'mm'},{label:'Canvas Height',val:c.canvH+'mm'},{label:'Aperture Width',val:c.apertureW?c.apertureW+'mm':'-'},{label:'Aperture Height',val:c.apertureH?c.apertureH+'mm':'-'},{label:'Travel each side',val:c.travel+'mm'},{label:'Gap between plates',val:Math.round(c.gapBetweenPlates)+'mm'}];
+    if(c.tvW>0&&c.tvH>0){if(!canvCoversAperture){alertHTML+=`<div class="alert warn">Canvasses do not meet in middle.</div>`;}else{alertHTML+=`<div class="alert ${overlapEach<bar?'warn':'ok'}">${overlapEach<bar?`Only ${overlapEach}mm overlap each side.`:`${overlapEach}mm overlap each side.`}</div>`;}}
+    if(c.needsHorizBrace)alertHTML+=`<div class="alert ok">Horizontal cross brace added.</div>`;
+  } else if(c.side){
+    const bar=CANVAS_FRAME, actualCoverage=Math.round(c.travel+bar-c.plateToAperture-apertureW);
+    rows=[{label:'Canvas Width',val:c.canvW+'mm'},{label:'Canvas Height',val:c.canvH+'mm'},{label:'Aperture Width',val:apertureW?apertureW+'mm':'-'},{label:'Plate to Aperture',val:Math.round(c.plateToAperture)+'mm'},{label:'Travel',val:c.travel+'mm'}];
+    if(c.tvW>0&&c.tvH>0){alertHTML+=`<div class="alert ${actualCoverage>=bar?'ok':actualCoverage>=MIN_SIDE_COVERAGE?'warn':'warn'}">${actualCoverage>=bar?`Coverage: ${actualCoverage}mm past aperture.`:`Coverage: only ${actualCoverage}mm past aperture.`}</div>`;}
+    if(c.needsHorizBrace)alertHTML+=`<div class="alert ok">Horizontal cross brace added.</div>`;
+    if(c.needsVertBrace)alertHTML+=`<div class="alert ok">Vertical cross brace added.</div>`;
+  } else {
+    const bar=CANVAS_FRAME, canvOffY=c.hookTop?-bar:c.frameH-c.outerCanvH+bar;
+    const motorH=c.motorH, frameBottomUp=c.frameH, motorBottomFixed=frameBottomUp-c.motorOffset;
+    const canvBottomUp=canvOffY+c.outerCanvH, actualMA=c.actualMotorToAperture;
+    const aFixedTop=!c.displayAbove?motorBottomFixed+actualMA:((motorBottomFixed-motorH)-actualMA-apertureH);
+    const dist=!c.displayAbove?(aFixedTop+apertureH-canvBottomUp):(canvOffY-aFixedTop);
+    const actualCoverage=Math.round(c.travel-dist);
+    rows=[{label:'Canvas Width',val:c.canvW+'mm'},{label:'Canvas Height',val:c.canvH+'mm'},{label:'Aperture Width',val:apertureW?apertureW+'mm':'-'},{label:'Aperture Height',val:apertureH?apertureH+'mm':'-'},{label:'Aperture To Motor',val:Math.round(actualMA)+'mm'},{label:'Travel',val:c.travel+'mm'},{label:'Total Coverage',val:c.coverageH?c.coverageH.toFixed(0)+'mm':'-'}];
+    if(c.tvW>0&&c.tvH>0){alertHTML+=`<div class="alert ${actualCoverage>=bar?'ok':actualCoverage>=MIN_EDGE_COVERAGE?'warn':'warn'}">${actualCoverage>=bar?`Coverage: ${actualCoverage}mm past aperture.`:`Coverage: only ${actualCoverage}mm past aperture.`}</div>`;}
+    if(c.needsCrossBrace)alertHTML+=`<div class="alert ok">Cross brace added.</div>`;
+  }
+  box.innerHTML=rows.map(r=>`<div class="info-row"><span class="lbl">${r.label}</span><span class="val">${r.val}</span></div>`).join('');
+  alerts.innerHTML=alertHTML;
+}
+
+function draw(){ drawFrame(animT); }
+
+const VIS_SCRIPT = document.createElement('script');
+
+function drawFrame(t) {
+  updateInfo();
+  const c=getCalc();
+  if(c.split){drawFrameSplit(t,c);return;}
+  if(c.side){drawFrameSide(t,c);return;}
+  drawFramePIC(t,c);
+}
+
+function lbl(ctx,txt,x,y,color,size){ ctx.save();ctx.font="600 "+size+" 'Open Sans',sans-serif";ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt.toUpperCase(),x,y);ctx.restore(); }
+function dimArrow(ctx,x1,y1,x2,y2,label,lineColor,arrowColor,dir){
+  ctx.save();ctx.strokeStyle=lineColor;ctx.lineWidth=1.2;
+  if(dir==='v'){if(Math.abs(y2-y1)<14){ctx.restore();return;}ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();aHead(ctx,x1,y1+(y2>y1?5:-5),y2>y1?'down':'up',arrowColor);aHead(ctx,x2,y2+(y2>y1?-5:5),y2>y1?'up':'down',arrowColor);ctx.font="700 0.68rem 'Open Sans',sans-serif";ctx.fillStyle=lineColor;ctx.textAlign='center';ctx.textBaseline='middle';ctx.save();ctx.translate(x1,(y1+y2)/2);ctx.rotate(-Math.PI/2);ctx.fillText(label,0,-10);ctx.restore();}
+  else{if(Math.abs(x2-x1)<14){ctx.restore();return;}ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();aHead(ctx,x1+(x2>x1?5:-5),y1,x2>x1?'right':'left',arrowColor);aHead(ctx,x2+(x2>x1?-5:5),y2,x2>x1?'left':'right',arrowColor);ctx.font="700 0.68rem 'Open Sans',sans-serif";ctx.fillStyle=lineColor;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(label,(x1+x2)/2,y1-6);}
+  ctx.restore();
+}
+function drawBrokenDimH(ctx,x1,y1,x2,y2,label,color,lw){ ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.font="700 0.68rem 'Open Sans',sans-serif";ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';const tw=ctx.measureText(label).width+12,mx=(x1+x2)/2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(mx-tw/2,y1);ctx.moveTo(mx+tw/2,y1);ctx.lineTo(x2,y1);ctx.stroke();ctx.fillText(label,mx,y1-2);aHead(ctx,x1+4,y1,'right',color);aHead(ctx,x2-4,y1,'left',color);ctx.restore(); }
+function drawBrokenDimV(ctx,x1,y1,x2,y2,label,color,lw){ ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.font="700 0.68rem 'Open Sans',sans-serif";ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';const tw=ctx.measureText(label).width+12,my=(y1+y2)/2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x1,my-tw/2);ctx.moveTo(x1,my+tw/2);ctx.lineTo(x1,y2);ctx.stroke();ctx.save();ctx.translate(x1,my);ctx.rotate(-Math.PI/2);ctx.fillText(label,0,0);ctx.restore();aHead(ctx,x1,y1+4,'down',color);aHead(ctx,x1,y2-4,'up',color);ctx.restore(); }
+function aHead(ctx,x,y,dir,color){ ctx.save();ctx.fillStyle=color;ctx.beginPath();const s=5;if(dir==='down'){ctx.moveTo(x,y);ctx.lineTo(x-s/2,y-s);ctx.lineTo(x+s/2,y-s);}else if(dir==='up'){ctx.moveTo(x,y);ctx.lineTo(x-s/2,y+s);ctx.lineTo(x+s/2,y+s);}else if(dir==='right'){ctx.moveTo(x,y);ctx.lineTo(x-s,y-s/2);ctx.lineTo(x-s,y+s/2);}else if(dir==='left'){ctx.moveTo(x,y);ctx.lineTo(x+s,y-s/2);ctx.lineTo(x+s,y+s/2);}ctx.closePath();ctx.fill();ctx.restore(); }
+function applyTVDimToCanvas(){ const tvW=parseFloat(document.getElementById('tvW').value)||0,tvH=parseFloat(document.getElementById('tvH').value)||0,at=parseFloat(document.getElementById('apertureThick').value)||0,aW=tvW+at*2,aH=tvH+at*2;const cW=document.getElementById('canvW'),cH=document.getElementById('canvH');if(!isSIDE()&&!isSPLIT()&&aW>parseFloat(cW.value||0))cW.value=aW;if((isSIDE()||isSPLIT())&&aH>parseFloat(cH.value||0))cH.value=aH; }
+
+function drawFramePIC(t,c){
+  const cnv=document.getElementById('vis'), container2=cnv.parentElement, DPR=window.devicePixelRatio||1;
+  const bar=CANVAS_FRAME, hookTop=c.hookTop, displayAbove=c.displayAbove;
+  const canvOffY=hookTop?-bar:c.frameH-c.outerCanvH+bar;
+  const motorH_mm=c.motorH, motorW_mm=c.motorW, actualMA=c.actualMotorToAperture;
+  const aH=c.tvH>0?c.tvH+c.apertureThick*2:60, aW2=c.tvW>0?c.tvW+c.apertureThick*2:100;
+  const travelAbs=t*c.travel, frameMovedTop=travelAbs, canvMovedTop=frameMovedTop+canvOffY;
+  const frameBottomUp=c.frameH, motorBottomFixed=frameBottomUp-c.motorOffset, motorFixedTop=motorBottomFixed-motorH_mm;
+  const canvBottomUp=canvOffY+c.outerCanvH;
+  let aFixedTop;
+  if(!displayAbove){aFixedTop=motorBottomFixed+actualMA;}else{aFixedTop=motorFixedTop-actualMA-aH;}
+  const tvTop_mm=aFixedTop+c.apertureThick;
+  const canvTopUp=canvOffY, canvBottomDown=c.travel+canvOffY+c.outerCanvH;
+  const highestPoint=Math.min(0,canvTopUp,aFixedTop), lowestPoint=Math.max(c.frameH,canvBottomDown,aFixedTop+aH,motorBottomFixed);
+  const totalMechH=lowestPoint-highestPoint;
+  const PAD=40, LEFT_DIM=80, RIGHT_DIM=140, TOP_PAD_EXTRA=40, BOTTOM_LABEL=50, LABEL_GUARD=50;
+  const totalSceneH=totalMechH+PAD*2+TOP_PAD_EXTRA+BOTTOM_LABEL;
+  const maxW=Math.max(c.frameW,c.outerCanvW,aW2,motorW_mm)+LEFT_DIM+RIGHT_DIM+PAD*2;
+  const cW2=container2.clientWidth||600, cH2=container2.clientHeight||500;
+  const SCALE=Math.min((cH2-4-LABEL_GUARD*2)/totalSceneH,(cW2-4)/maxW);
+  cnv.width=cW2*DPR; cnv.height=cH2*DPR; cnv.style.width=cW2+'px'; cnv.style.height=cH2+'px';
+  const ctx=cnv.getContext('2d'); ctx.scale(DPR,DPR); ctx.clearRect(0,0,cW2,cH2);
+  ctx.fillStyle='#f5f5f5'; ctx.fillRect(0,0,cW2,cH2);
+  function mm(v){return v*SCALE;}
+  const cx=cW2/2, originY=(cH2-totalMechH*SCALE)/2+mm(PAD+TOP_PAD_EXTRA)-mm(highestPoint)+LABEL_GUARD;
+  function yOf(y){return originY+mm(y);}
+  function xLeft(w){return cx-mm(w/2);}
+  const fStroke=mm(FRAME_STROKE);
+  const frameLeft=xLeft(c.frameW), frameTop=yOf(frameMovedTop), frameWpx=mm(c.frameW), frameHpx=mm(c.frameH);
+  const canvLeft=xLeft(c.outerCanvW), canvTop=yOf(canvMovedTop), outerCW=mm(c.outerCanvW), outerCH=mm(c.outerCanvH), barPx=mm(bar);
+  const motorLeft=xLeft(motorW_mm), motorTop=yOf(motorFixedTop), motorWpx=mm(motorW_mm), motorHpx=mm(motorH_mm);
+  const apLeft=xLeft(aW2), apTop=yOf(aFixedTop), apW=mm(aW2), apH=mm(aH);
+  const tvLeft=xLeft(c.tvW), tvTopPx=yOf(tvTop_mm), tvWpx=mm(c.tvW), tvHpx=mm(c.tvH);
+  if(c.tvW>0&&c.tvH>0){
+    ctx.fillStyle='#f5f5f5'; ctx.fillRect(apLeft,apTop,apW,apH);
+    ctx.save();let rg=new Path2D();rg.rect(apLeft,apTop,apW,apH);ctx.clip(rg);ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=20;ctx.strokeStyle='#000';ctx.lineWidth=20;ctx.strokeRect(apLeft-10,apTop-10,apW+20,apH+20);ctx.restore();
+    ctx.strokeStyle='#f7f7f7';ctx.lineWidth=2;ctx.strokeRect(apLeft,apTop,apW,apH);
+    ctx.save();ctx.beginPath();ctx.roundRect(tvLeft,tvTopPx,tvWpx,tvHpx,2);ctx.clip();ctx.fillStyle='#111';ctx.fillRect(tvLeft,tvTopPx,tvWpx,tvHpx);ctx.strokeStyle='#222';ctx.lineWidth=8;ctx.strokeRect(tvLeft+4,tvTopPx+4,tvWpx-8,tvHpx-8);ctx.restore();
+    const grad=ctx.createLinearGradient(tvLeft,tvTopPx,tvLeft,tvTopPx+tvHpx);grad.addColorStop(0,'rgba(255,255,255,0.06)');grad.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=grad;ctx.fillRect(tvLeft,tvTopPx,tvWpx,tvHpx);
+    lbl(ctx,c.tvW+' x '+c.tvH+'mm',cx,tvTopPx+tvHpx/2+4,'#fff','0.63rem');
+  }
+  ctx.save();ctx.beginPath();ctx.roundRect(motorLeft,motorTop,motorWpx,motorHpx,2);ctx.fillStyle='#2a2a2a';ctx.fill();ctx.strokeStyle='#444';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  lbl(ctx,'CASSETTE CUTOUT '+motorW_mm+' x '+motorH_mm+'mm',cx,motorTop+motorHpx/2+4,'#fff','0.55rem');
+  ctx.fillStyle='#b0b0b0';ctx.beginPath();ctx.rect(frameLeft,frameTop,frameWpx,frameHpx);ctx.rect(frameLeft+fStroke,frameTop+fStroke,frameWpx-fStroke*2,frameHpx-fStroke*2);ctx.fill('evenodd');ctx.strokeStyle='#888';ctx.lineWidth=1.5;ctx.strokeRect(frameLeft,frameTop,frameWpx,frameHpx);
+  ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';
+  ctx.fillRect(canvLeft,canvTop,outerCW,barPx);ctx.fillRect(canvLeft,canvTop+outerCH-barPx,outerCW,barPx);ctx.fillRect(canvLeft,canvTop+barPx,barPx,outerCH-barPx*2);ctx.fillRect(canvLeft+outerCW-barPx,canvTop+barPx,barPx,outerCH-barPx*2);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(canvLeft,canvTop,outerCW,outerCH);ctx.restore();
+  if(c.needsCrossBrace){
+    const bY=hookTop?frameMovedTop+c.frameH+2+bar/2:frameMovedTop-2-bar/2;
+    const braceY=yOf(bY);
+    ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(canvLeft+barPx,braceY-mm(bar/2),outerCW-barPx*2,mm(bar));ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(canvLeft+barPx,braceY-mm(bar/2),outerCW-barPx*2,mm(bar));ctx.restore();
+  }
+  if(upImg&&showArtwork){
+    const d2=getDims();
+    const imgAreaW=d2.imgAreaW, imgAreaH=d2.imgAreaH;
+    const scl=Math.max(imgAreaW/upImg.width,imgAreaH/upImg.height);
+    const sW=upImg.width*scl, sH=upImg.height*scl;
+    const imgDrawX=d2.imgAreaX+(imgAreaW-sW)/2+imgXOffset;
+    const imgDrawY=d2.imgAreaY+(imgAreaH-sH)/2+imgYOffset;
+    const regionX=d2.faceX;
+    const regionY=d2.faceY;
+    const regionW=d2.cW;
+    const regionH=d2.cH;
+    const faceLeft=canvLeft+barPx, faceTop=canvTop+barPx;
+    const faceCW=outerCW-barPx*2, faceCH=outerCH-barPx*2;
+    const rx=faceCW/regionW, ry=faceCH/regionH;
+    const ox=faceLeft+(imgDrawX-regionX)*rx;
+    const oy=faceTop+(imgDrawY-regionY)*ry;
+    ctx.save(); ctx.beginPath(); ctx.rect(faceLeft,faceTop,faceCW,faceCH); ctx.clip();
+    ctx.drawImage(upImg,ox,oy,sW*rx,sH*ry);
+    ctx.restore();
+  }
+  drawBrokenDimH(ctx,frameLeft,frameTop+frameHpx+12,frameLeft+frameWpx,frameTop+frameHpx+12,c.frameW+'mm MOVING FRAME','#777',1.8);
+  drawBrokenDimV(ctx,frameLeft+frameWpx+12,frameTop,frameLeft+frameWpx+12,frameTop+frameHpx,c.frameH+'mm MOVING FRAME','#777',1.8);
+  const dimRightX=cx+Math.max(mm(c.frameW),outerCW,apW,mm(motorW_mm))/2+20;
+  dimArrow(ctx,dimRightX+40,yOf(highestPoint),dimRightX+40,yOf(lowestPoint),(Math.round(totalMechH)+'mm total').toUpperCase(),'#000','#000','v');
+  if(t>0.01)dimArrow(ctx,dimRightX+80,yOf(0),dimRightX+80,yOf(t*c.travel),('travel '+Math.round(t*c.travel)+'mm').toUpperCase(),'#cc3333','#cc3333','v');
+  if(c.tvW>0&&c.tvH>0){
+    const dL1=apLeft-28,dL2=apLeft-60,dL3=apLeft-92;
+    dimArrow(ctx,dL1,apTop,dL1,apTop+apH,(Math.round(aH)+'mm aperture').toUpperCase(),'#000','#000','v');
+    dimArrow(ctx,apLeft,apTop+apH+36,apLeft+apW,apTop+apH+36,(Math.round(aW2)+'mm aperture').toUpperCase(),'#000','#000','h');
+    if(!displayAbove){dimArrow(ctx,dL2,yOf(motorBottomFixed),dL2,apTop,(Math.round(actualMA)+'mm').toUpperCase(),'#000','#000','v');}
+    else{dimArrow(ctx,dL2,yOf(motorFixedTop),dL2,yOf(aFixedTop+aH),(Math.round(actualMA)+'mm').toUpperCase(),'#000','#000','v');}
+  }
+  if(t<0.01&&Math.abs(yOf(motorBottomFixed)-yOf(frameBottomUp))>4)dimArrow(ctx,motorLeft-16,yOf(frameBottomUp),motorLeft-16,yOf(motorBottomFixed),(Math.round(c.motorOffset)+'mm').toUpperCase(),'#555','#555','v');
+  dimArrow(ctx,canvLeft+outerCW+16,canvTop,canvLeft+outerCW+16,canvTop+outerCH,(c.outerCanvH+'mm canvas').toUpperCase(),'#000','#000','v');
+  if(!displayAbove){dimArrow(ctx,canvLeft,canvTop-28,canvLeft+outerCW,canvTop-28,(c.outerCanvW+'mm canvas').toUpperCase(),'#000','#000','h');}
+  else{dimArrow(ctx,canvLeft,canvTop+outerCH+28,canvLeft+outerCW,canvTop+outerCH+28,(c.outerCanvW+'mm canvas').toUpperCase(),'#000','#000','h');}
+}
+
+function drawFrameSplit(t, c) {
+  const cnv = document.getElementById('vis');
+  const cont = cnv.parentElement;
+  const DPR = window.devicePixelRatio || 1;
+  const bar_mm = CANVAS_FRAME;
+  const plateW_mm = c.plateW, plateH_mm = c.plateH;
+  const apertureH_mm = c.apertureH > 0 ? c.apertureH : c.frameH;
+  const apertureW_mm = c.apertureW > 0 ? c.apertureW : 200;
+  const tvW_mm = c.tvW, tvH_mm = c.tvH;
+  const gapBetweenPlates_mm = (c.travel + bar_mm) * 2;
+  const leftPlateLeft_mm = 0, leftPlateRight_mm = plateW_mm;
+  const rightPlateLeft_mm = leftPlateRight_mm + gapBetweenPlates_mm;
+  const rightPlateRight_mm = rightPlateLeft_mm + plateW_mm;
+  const apertureLeft_mm = leftPlateRight_mm + (gapBetweenPlates_mm - apertureW_mm) / 2;
+  const plateToAperture = apertureLeft_mm - leftPlateRight_mm;
+  const leftFrameAt0_mm = leftPlateRight_mm - c.frameW;
+  const leftFrameLeft_mm = leftFrameAt0_mm + t * c.travel;
+  const leftCanvOffX_mm = c.frameW - c.outerCanvW + bar_mm;
+  const leftCanvLeft_mm = leftFrameLeft_mm + leftCanvOffX_mm;
+  const rightFrameAt0_mm = rightPlateLeft_mm;
+  const rightFrameLeft_mm = rightFrameAt0_mm - t * c.travel;
+  const rightCanvOffX_mm = -bar_mm;
+  const rightCanvLeft_mm = rightFrameLeft_mm + rightCanvOffX_mm;
+  const frameTop_mm = 0;
+  let plateTop_mm;
+  if (c.splitVMode === 'bottom-extend') {
+    const baseH = c.splitBaseFrameH || c.frameH;
+    plateTop_mm = (baseH / 2) - (plateH_mm / 2);
+  } else {
+    plateTop_mm = (c.frameH / 2) - (plateH_mm / 2);
+  }
+  const hookTop = c.hookTop;
+  const canvTopRel_mm = hookTop ? -bar_mm : c.frameH - c.outerCanvH + bar_mm;
+  const canvTop_mm = frameTop_mm + canvTopRel_mm;
+  const canvCenterY_mm = canvTop_mm + c.outerCanvH / 2;
+  const apertureTop_mm = canvCenterY_mm - apertureH_mm / 2;
+  const tvLeft_mm = apertureLeft_mm + c.apertureThick;
+  const tvTop_mm = apertureTop_mm + c.apertureThick;
+  const leftCanvLeft_open_mm = leftFrameAt0_mm + leftCanvOffX_mm;
+  const rightCanvRight_open_mm = rightFrameAt0_mm + rightCanvOffX_mm + c.outerCanvW;
+  const fullLeft_mm = Math.min(leftCanvLeft_open_mm, leftPlateLeft_mm);
+  const fullRight_mm = Math.max(rightCanvRight_open_mm, rightPlateRight_mm);
+  const allTop = Math.min(plateTop_mm, canvTop_mm, apertureTop_mm, frameTop_mm);
+  const allBottom = Math.max(plateTop_mm + plateH_mm, canvTop_mm + c.outerCanvH, apertureTop_mm + apertureH_mm, frameTop_mm + c.frameH);
+  const sceneW_mm = fullRight_mm - fullLeft_mm, sceneH_mm = allBottom - allTop;
+  const DIM_TOP=80, DIM_BOTTOM=70, DIM_LEFT=60, DIM_RIGHT=60, PAD=30;
+  const containerW = cont.clientWidth || 800, containerH = cont.clientHeight || 500;
+  const SCALE = Math.min((containerW - DIM_LEFT - DIM_RIGHT - PAD*2) / sceneW_mm, (containerH - DIM_TOP - DIM_BOTTOM - PAD*2) / sceneH_mm);
+  cnv.width = containerW * DPR; cnv.height = containerH * DPR;
+  cnv.style.width = containerW + 'px'; cnv.style.height = containerH + 'px';
+  const ctx = cnv.getContext('2d');
+  ctx.scale(DPR, DPR);
+  ctx.clearRect(0, 0, containerW, containerH);
+  ctx.fillStyle = '#f5f5f5'; ctx.fillRect(0, 0, containerW, containerH);
+  function mm(v) { return v * SCALE; }
+  const sceneW_px = sceneW_mm * SCALE, sceneH_px = sceneH_mm * SCALE;
+  const originX = DIM_LEFT + PAD + (containerW - DIM_LEFT - DIM_RIGHT - PAD*2 - sceneW_px) / 2 - mm(fullLeft_mm);
+  const originY = DIM_TOP + (containerH - DIM_TOP - DIM_BOTTOM - sceneH_px) / 2 - mm(allTop);
+  function xOf(x) { return originX + mm(x); }
+  function yOf(y) { return originY + mm(y); }
+  if (c.tvW > 0 && c.tvH > 0) {
+    const apX=xOf(apertureLeft_mm), apY=yOf(apertureTop_mm), apW=mm(apertureW_mm), apH=mm(apertureH_mm);
+    ctx.fillStyle='#fff'; ctx.fillRect(apX,apY,apW,apH);
+    ctx.save(); let rg=new Path2D(); rg.rect(apX,apY,apW,apH); ctx.clip(rg);
+    ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=20; ctx.strokeStyle='#000'; ctx.lineWidth=20; ctx.strokeRect(apX-10,apY-10,apW+20,apH+20);
+    ctx.restore(); ctx.strokeStyle='#f7f7f7'; ctx.lineWidth=2; ctx.strokeRect(apX,apY,apW,apH);
+    const tvX=xOf(tvLeft_mm), tvY=yOf(tvTop_mm), tvWpx=mm(tvW_mm), tvHpx=mm(tvH_mm);
+    ctx.save(); ctx.beginPath(); ctx.roundRect(tvX,tvY,tvWpx,tvHpx,2); ctx.clip();
+    ctx.fillStyle='#111'; ctx.fillRect(tvX,tvY,tvWpx,tvHpx); ctx.strokeStyle='#222'; ctx.lineWidth=8; ctx.strokeRect(tvX+4,tvY+4,tvWpx-8,tvHpx-8); ctx.restore();
+    const grad=ctx.createLinearGradient(tvX,tvY,tvX,tvY+tvHpx); grad.addColorStop(0,'rgba(255,255,255,0.06)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grad; ctx.fillRect(tvX,tvY,tvWpx,tvHpx);
+    lbl(ctx, c.tvW+' x '+c.tvH+'mm', tvX+tvWpx/2, tvY+tvHpx/2+4, '#fff', '0.63rem');
+  } else {
+    const apX=xOf(apertureLeft_mm), apY=yOf(apertureTop_mm), apW=mm(apertureW_mm), apH=mm(apertureH_mm);
+    ctx.fillStyle='#e8e8e8'; ctx.fillRect(apX,apY,apW,apH);
+    ctx.save(); let rg2=new Path2D(); rg2.rect(apX,apY,apW,apH); ctx.clip(rg2);
+    ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=20; ctx.strokeStyle='#000'; ctx.lineWidth=20; ctx.strokeRect(apX-10,apY-10,apW+20,apH+20);
+    ctx.restore(); ctx.strokeStyle='#ccc'; ctx.lineWidth=2; ctx.strokeRect(apX,apY,apW,apH);
+  }
+  function drawPlate(px, py, pw, ph) {
+    ctx.save(); ctx.beginPath(); ctx.roundRect(px,py,pw,ph,mm(6));
+    ctx.fillStyle='#2a2a2a'; ctx.fill(); ctx.strokeStyle='#444'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+    lbl(ctx, pw/SCALE+'x'+ph/SCALE+'mm', px+pw/2, py+ph/2+4, '#fff', '0.5rem');
+    const cols=[px+mm(15), px+pw-mm(15)], cy=py+ph/2, sp=mm(75);
+    for (let col of cols) for (let i=-4;i<=4;i++) { const hy=cy+i*sp; if(hy>=py+mm(5)&&hy<=py+ph-mm(5)){ctx.save();ctx.beginPath();ctx.arc(col,hy,mm(4),0,Math.PI*2);ctx.fillStyle='#555';ctx.fill();ctx.restore();} }
+  }
+  const plateY=yOf(plateTop_mm), plateWpx=mm(plateW_mm), plateHpx=mm(plateH_mm);
+  drawPlate(xOf(leftPlateLeft_mm), plateY, plateWpx, plateHpx);
+  drawPlate(xOf(rightPlateLeft_mm), plateY, plateWpx, plateHpx);
+  const leftFrameX=xOf(leftFrameLeft_mm), leftFrameY=yOf(frameTop_mm), frameWpx=mm(c.frameW), frameHpx=mm(c.frameH);
+  const rightFrameX=xOf(rightFrameLeft_mm);
+  const leftCanvX=xOf(leftCanvLeft_mm), rightCanvX=xOf(rightCanvLeft_mm);
+  const canvY=yOf(canvTop_mm), outerCW=mm(c.outerCanvW), outerCH=mm(c.outerCanvH), barPx=mm(bar_mm);
+  function drawMovingFrame(fx, fy, fw, fh) {
+    const fStroke=mm(FRAME_STROKE);
+    ctx.fillStyle='#b0b0b0'; ctx.beginPath(); ctx.rect(fx,fy,fw,fh); ctx.rect(fx+fStroke,fy+fStroke,fw-fStroke*2,fh-fStroke*2);
+    ctx.fill('evenodd'); ctx.strokeStyle='#888'; ctx.lineWidth=1.5; ctx.strokeRect(fx,fy,fw,fh);
+  }
+  function drawCanvas(cx, cy, cw, ch, isLeft, fx) {
+    const bar=barPx;
+    const side=isLeft?'left':'right';
+    ctx.save(); ctx.globalAlpha=0.9; ctx.fillStyle='#c8a050';
+    ctx.fillRect(cx,cy,cw,bar); ctx.fillRect(cx,cy+ch-bar,cw,bar);
+    ctx.fillRect(cx,cy+bar,bar,ch-bar*2); ctx.fillRect(cx+cw-bar,cy+bar,bar,ch-bar*2);
+    ctx.strokeStyle='#a07030'; ctx.lineWidth=1; ctx.strokeRect(cx,cy,cw,ch); ctx.restore();
+    if (c.needsHorizBrace) {
+      const braceY_mm=hookTop?frameTop_mm+c.frameH+2+bar_mm/2:frameTop_mm-2-bar_mm/2;
+      const braceYpx=yOf(braceY_mm);
+      const bL=isLeft?(c.needsVertBrace?fx:cx+bar):cx+bar;
+      const bR=isLeft?(cx+cw-bar):(c.needsVertBrace?fx+mm(c.frameW):cx+cw-bar);
+      ctx.save(); ctx.globalAlpha=0.9; ctx.fillStyle='#c8a050';
+      ctx.fillRect(bL,braceYpx-bar/2,bR-bL,bar); ctx.strokeStyle='#a07030'; ctx.lineWidth=1; ctx.strokeRect(bL,braceYpx-bar/2,bR-bL,bar); ctx.restore();
     }
-
-    function mmLabel(mm) {
-        return `${fmt(mm)}mm (${mmToInchStr(mm)})`;
+    if (c.needsVertBrace) {
+      const vertBraceX=isLeft?fx-bar:fx+mm(c.frameW);
+      ctx.save(); ctx.globalAlpha=0.9; ctx.fillStyle='#c8a050';
+      ctx.fillRect(vertBraceX,cy+bar,bar,ch-bar*2); ctx.strokeStyle='#a07030'; ctx.lineWidth=1; ctx.strokeRect(vertBraceX,cy+bar,bar,ch-bar*2); ctx.restore();
     }
-
-    function getDims() {
-        const cW       = getNum('cW');
-        const cH       = getNum('cH');
-        const sideWrap = getNum('sideWrap');
-        const backWrap = getNum('backWrap');
-        const bleed    = getNum('bleed');
-        const imgZone  = sideWrap + backWrap;
-        const totalW   = cW + (imgZone + bleed) * 2;
-        const totalH   = cH + (imgZone + bleed) * 2;
-        const imgAreaX = bleed;
-        const imgAreaY = bleed;
-        const imgAreaW = cW + imgZone * 2;
-        const imgAreaH = cH + imgZone * 2;
-        const faceX    = bleed + imgZone;
-        const faceY    = bleed + imgZone;
-        return { cW, cH, sideWrap, backWrap, bleed, imgZone,
-                 totalW, totalH, imgAreaX, imgAreaY, imgAreaW, imgAreaH, faceX, faceY };
+    if(upImg&&showArtwork){
+      const d2=getDims();
+      const fullAreaW=(d2.cW*2)+(d2.imgZone*2), fullAreaH=d2.cH+(d2.imgZone*2);
+      const scl=Math.max(fullAreaW/upImg.width,fullAreaH/upImg.height);
+      const sW=upImg.width*scl, sH=upImg.height*scl;
+      const imgDrawX=d2.imgAreaX+(fullAreaW-sW)/2+imgXOffset;
+      const imgDrawY=d2.imgAreaY+(fullAreaH-sH)/2+imgYOffset;
+      const regionX=d2.faceX+(isLeft?0:d2.cW);
+      const regionY=d2.faceY;
+      const regionW=d2.cW, regionH=d2.cH;
+      const faceL=cx+bar, faceT=cy+bar;
+      const faceCW=cw-bar*2, faceCH=ch-bar*2;
+      const rx=faceCW/regionW, ry=faceCH/regionH;
+      const drawX=faceL+(imgDrawX-regionX)*rx;
+      const drawY=faceT+(imgDrawY-regionY)*ry;
+      ctx.save(); ctx.beginPath(); ctx.rect(faceL,faceT,faceCW,faceCH); ctx.clip();
+      ctx.drawImage(upImg,drawX,drawY,sW*rx,sH*ry);
+      ctx.restore();
     }
+  }
+  drawMovingFrame(leftFrameX, leftFrameY, frameWpx, frameHpx);
+  drawMovingFrame(rightFrameX, leftFrameY, frameWpx, frameHpx);
+  drawCanvas(leftCanvX, canvY, outerCW, outerCH, true, leftFrameX);
+  drawCanvas(rightCanvX, canvY, outerCW, outerCH, false, rightFrameX);
+  const dimTopY=Math.min(canvY,yOf(apertureTop_mm))-36;
+  const totalW_mm=Math.round(rightCanvRight_open_mm-leftCanvLeft_open_mm);
+  dimArrow(ctx,xOf(leftCanvLeft_open_mm),dimTopY,xOf(rightCanvRight_open_mm),dimTopY,(totalW_mm+'mm total mechanism').toUpperCase(),'#000','#000','h');
+  const dimTopY2=dimTopY-28;
+  dimArrow(ctx,xOf(leftPlateRight_mm),dimTopY2,xOf(rightPlateLeft_mm),dimTopY2,(Math.round(gapBetweenPlates_mm)+'mm between plates').toUpperCase(),'#555','#555','h');
+  if (t > 0.01) {
+    const travelDimY=dimTopY2-28;
+    dimArrow(ctx,xOf(leftFrameAt0_mm),travelDimY,xOf(leftFrameAt0_mm+t*c.travel),travelDimY,('travel '+Math.round(t*c.travel)+'mm each').toUpperCase(),'#cc3333','#cc3333','h');
+  }
+  const dimBottomY=Math.max(canvY+outerCH,yOf(frameTop_mm+c.frameH))+22;
+  drawBrokenDimH(ctx,leftCanvX,dimBottomY,leftCanvX+outerCW,dimBottomY,c.canvW+'mm canvas (inner)','#777',1.8);
+  drawBrokenDimH(ctx,rightCanvX,dimBottomY,rightCanvX+outerCW,dimBottomY,c.canvW+'mm canvas (inner)','#777',1.8);
+  drawBrokenDimV(ctx,leftFrameX-14,leftFrameY,leftFrameX-14,leftFrameY+frameHpx,c.canvH+'mm canvas (inner)','#777',1.8);
+  if (t < 0.01) {
+    const gapLeft_mm=leftFrameAt0_mm+leftCanvOffX_mm+c.outerCanvW;
+    const gapRight_mm=rightFrameAt0_mm+rightCanvOffX_mm;
+    const openGap_mm=Math.round(gapRight_mm-gapLeft_mm);
+    dimArrow(ctx,xOf(gapLeft_mm),dimBottomY+28,xOf(gapRight_mm),dimBottomY+28,(openGap_mm+'mm open gap').toUpperCase(),'#555','#555','h');
+  }
+  if (c.tvW > 0 && c.tvH > 0) {
+    const apX=xOf(apertureLeft_mm), apY=yOf(apertureTop_mm), apW=mm(apertureW_mm), apH=mm(apertureH_mm), apMidX=apX+apW/2;
+    dimArrow(ctx,apX-28,apY,apX-28,apY+apH,(Math.round(apertureH_mm)+'mm aperture').toUpperCase(),'#000','#000','v');
+    dimArrow(ctx,apX,apY-20,apX+apW,apY-20,(Math.round(apertureW_mm)+'mm aperture').toUpperCase(),'#000','#000','h');
+    const plateBottom_mm=plateTop_mm+plateH_mm, gapBottom_mm=plateBottom_mm-(apertureTop_mm+apertureH_mm), gapTop_mm=apertureTop_mm-plateTop_mm;
+    if(gapBottom_mm>=gapTop_mm){dimArrow(ctx,apMidX,apY+apH,apMidX,yOf(plateBottom_mm),Math.round(gapBottom_mm)+'mm','#aaa','#aaa','v');}
+    else{dimArrow(ctx,apMidX,yOf(plateTop_mm),apMidX,apY,Math.round(gapTop_mm)+'mm','#aaa','#aaa','v');}
+    const plateMidY=plateY+plateHpx/2;
+    dimArrow(ctx,xOf(leftPlateRight_mm),plateMidY,apX,plateMidY,Math.round(plateToAperture)+'mm','#aaa','#aaa','h');
+    dimArrow(ctx,apX+apW,plateMidY,xOf(rightPlateLeft_mm),plateMidY,Math.round(plateToAperture)+'mm','#aaa','#aaa','h');
+  }
+}
 
-    function getSplitDraw(d, side) {
-        if (!upImg) return null;
-        const fullAreaW = (d.cW * 2) + (d.imgZone * 2);
-        const fullAreaH = d.cH + (d.imgZone * 2);
-        const scl = Math.max(fullAreaW / upImg.width, fullAreaH / upImg.height);
-        const sW  = upImg.width  * scl;
-        const sH  = upImg.height * scl;
-        const centerX = fullAreaW / 2 + imgXOffset;
-        const centerY = fullAreaH / 2 + imgYOffset;
-        const leftBoundary = centerX - sW / 2;
-        const topBoundary  = centerY - sH / 2;
-        const sideCorrection = side === 'right' ? d.cW : 0;
-        return {
-            x: (d.imgAreaX + leftBoundary) - sideCorrection,
-            y: d.imgAreaY + topBoundary,
-            w: sW, h: sH
-        };
-    }
 
-    function drawOneCanvas(cnv, d, side) {
-        const halfW = container.clientWidth / 2;
-        const scale = (isSplit ? halfW : container.clientWidth) / d.totalW;
-        cnv.width  = Math.round(d.totalW * scale);
-        cnv.height = Math.round(d.totalH * scale);
-        const ctx = cnv.getContext('2d');
-        ctx.clearRect(0, 0, cnv.width, ctx.height);
-        ctx.save();
-        ctx.scale(scale, scale);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, d.totalW, d.totalH);
-        ctx.fillStyle = '#d8d8d8';
-        ctx.fillRect(d.imgAreaX, d.imgAreaY, d.imgAreaW, d.imgAreaH);
-        if (upImg) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(d.imgAreaX, d.imgAreaY, d.imgAreaW, d.imgAreaH);
-            ctx.clip();
-            if (side) {
-                const p = getSplitDraw(d, side);
-                if (p) ctx.drawImage(upImg, p.x, p.y, p.w, p.h);
-            } else {
-                const scl = Math.max(d.imgAreaW / upImg.width, d.imgAreaH / upImg.height);
-                const sW  = upImg.width * scl, sH = upImg.height * scl;
-                ctx.drawImage(upImg,
-                    d.imgAreaX + (d.imgAreaW - sW) / 2 + imgXOffset,
-                    d.imgAreaY + (d.imgAreaH - sH) / 2 + imgYOffset,
-                    sW, sH);
-            }
-            ctx.restore();
-        }
-        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-        ctx.lineWidth = 0.5;
-        ctx.setLineDash([3, 3]);
-        const bwX = d.bleed + d.backWrap;
-        ctx.strokeRect(bwX, bwX, d.totalW - bwX * 2, d.totalH - bwX * 2);
-        ctx.strokeStyle = 'rgba(0,0,0,0.9)';
-        ctx.lineWidth = 0.7;
-        ctx.setLineDash([]);
-        ctx.strokeRect(d.faceX, d.faceY, d.cW, d.cH);
-        const guideLen = getNum('guideLen'), guideThk = 0.5;
-        ctx.fillStyle = '#000';
-        ctx.setLineDash([]);
-        ctx.fillRect(d.totalW/2 - guideThk/2, 0, guideThk, guideLen);
-        ctx.fillRect(d.totalW/2 - guideThk/2, d.totalH - guideLen, guideThk, guideLen);
-        ctx.fillRect(0, d.totalH/2 - guideThk/2, guideLen, guideThk);
-        ctx.fillRect(d.totalW - guideLen, d.totalH/2 - guideThk/2, guideLen, guideThk);
-        ctx.restore();
-    }
+function drawFrameSide(t,c){
+  const cnv=document.getElementById('vis'), cont=cnv.parentElement, DPR=window.devicePixelRatio||1;
+  const bar_mm=CANVAS_FRAME, hookTop=c.hookTop, mirrorLeft=c.displayAbove;
+  const aH=c.tvH>0?c.tvH+c.apertureThick*2:c.frameH, aW2=c.tvW>0?c.tvW+c.apertureThick*2:100;
+  const plateW=PICSIDE_PLATE_W, plateH_mm=PICSIDE_PLATE_H;
+  const canvTopRel=hookTop?-bar_mm:c.frameH-c.outerCanvH+bar_mm;
+  const plateCenterY=c.frameH/2;
+  let plateFixedLeft, frameLeftAt0, apertureFixedLeft, canvOffX;
+  if(!mirrorLeft){plateFixedLeft=0;frameLeftAt0=plateFixedLeft+plateW-c.frameW;canvOffX=c.frameW-c.outerCanvW+bar_mm;apertureFixedLeft=plateFixedLeft+plateW+c.plateToAperture;}
+  else{apertureFixedLeft=0;plateFixedLeft=apertureFixedLeft+aW2+c.plateToAperture;frameLeftAt0=plateFixedLeft;canvOffX=-bar_mm;}
+  const frameLeft_mm=frameLeftAt0+(!mirrorLeft?t*c.travel:-t*c.travel);
+  const canvLeft_mm=frameLeft_mm+canvOffX;
+  const frameTop_mm=0, canvTop_mm=frameTop_mm+canvTopRel;
+  const canvCenterY=canvTop_mm+c.outerCanvH/2;
+  const apertureTop=canvCenterY-aH/2;
+  const plateTop=plateCenterY-plateH_mm/2;
+  const fullLeft=Math.min(plateFixedLeft,apertureFixedLeft,canvLeft_mm,frameLeft_mm);
+  const fullRight=Math.max(plateFixedLeft+plateW,apertureFixedLeft+aW2,canvLeft_mm+c.outerCanvW,frameLeft_mm+c.frameW)+t*c.travel;
+  const allTop=Math.min(canvTop_mm,apertureTop,plateTop);
+  const allBot=Math.max(canvTop_mm+c.outerCanvH,apertureTop+aH,plateTop+plateH_mm);
+  const totalW=fullRight-fullLeft, totalH=allBot-allTop;
+  const cW2=cont.clientWidth||600, cH2=cont.clientHeight||500;
+  cnv.width=cW2*DPR; cnv.height=cH2*DPR; cnv.style.width=cW2+'px'; cnv.style.height=cH2+'px';
+  const ctx=cnv.getContext('2d'); ctx.scale(DPR,DPR); ctx.clearRect(0,0,cW2,cH2);
+  ctx.fillStyle='#f5f5f5'; ctx.fillRect(0,0,cW2,cH2);
+  const SCALE=Math.min((cW2-80)/totalW,(cH2-80)/totalH)*0.85;
+  function mm(v){return v*SCALE;}
+  const origX=cW2/2-mm((fullLeft+fullRight)/2), origY=cH2/2-mm((allTop+allBot)/2);
+  function xOf(x){return origX+mm(x);}
+  function yOf(y){return origY+mm(y);}
+  const bar=mm(bar_mm), outerCW=mm(c.outerCanvW), outerCH=mm(c.outerCanvH);
+  const frameWpx=mm(c.frameW), frameHpx=mm(c.frameH), plateWpx=mm(plateW), plateHpx=mm(plateH_mm);
+  const frameX=xOf(frameLeft_mm), frameY=yOf(frameTop_mm);
+  const canvX=xOf(canvLeft_mm), canvY=yOf(canvTop_mm);
+  const plateX=xOf(plateFixedLeft), plateY2=yOf(plateTop);
+  const apX=xOf(apertureFixedLeft), apY=yOf(apertureTop), apW=mm(aW2), apH=mm(aH);
+  if(c.tvW>0&&c.tvH>0){
+    ctx.fillStyle='#f5f5f5';ctx.fillRect(apX,apY,apW,apH);
+    ctx.save();let rg=new Path2D();rg.rect(apX,apY,apW,apH);ctx.clip(rg);ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=20;ctx.strokeStyle='#000';ctx.lineWidth=20;ctx.strokeRect(apX-10,apY-10,apW+20,apH+20);ctx.restore();
+    ctx.strokeStyle='#f7f7f7';ctx.lineWidth=2;ctx.strokeRect(apX,apY,apW,apH);
+    const tvX=xOf(apertureFixedLeft+c.apertureThick), tvY=yOf(apertureTop+c.apertureThick);
+    ctx.save();ctx.beginPath();ctx.roundRect(tvX,tvY,mm(c.tvW),mm(c.tvH),2);ctx.clip();ctx.fillStyle='#111';ctx.fillRect(tvX,tvY,mm(c.tvW),mm(c.tvH));ctx.restore();
+  }
+  ctx.save();ctx.fillStyle='#555';ctx.fillRect(plateX,plateY2,plateWpx,plateHpx);ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.strokeRect(plateX,plateY2,plateWpx,plateHpx);ctx.restore();
+  const fStroke=mm(FRAME_STROKE);
+  ctx.fillStyle='#b0b0b0';ctx.beginPath();ctx.rect(frameX,frameY,frameWpx,frameHpx);ctx.rect(frameX+fStroke,frameY+fStroke,frameWpx-fStroke*2,frameHpx-fStroke*2);ctx.fill('evenodd');ctx.strokeStyle='#888';ctx.lineWidth=1.5;ctx.strokeRect(frameX,frameY,frameWpx,frameHpx);
+  if(c.needsHorizBrace){const bY=hookTop?yOf(c.frameH+2+bar_mm/2):yOf(-2-bar_mm/2);const bL=c.needsVertBrace?(!mirrorLeft?frameX:canvX+bar):canvX+bar;const bR=c.needsVertBrace?(!mirrorLeft?canvX+outerCW-bar:frameX+frameWpx):canvX+outerCW-bar;ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(bL,bY-bar/2,bR-bL,bar);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(bL,bY-bar/2,bR-bL,bar);ctx.restore();}
+  if(c.needsVertBrace){const vx=!mirrorLeft?frameX-bar:frameX+frameWpx;ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(vx,canvY+bar,bar,outerCH-bar*2);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(vx,canvY+bar,bar,outerCH-bar*2);ctx.restore();}
+  ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(canvX,canvY,outerCW,bar);ctx.fillRect(canvX,canvY+outerCH-bar,outerCW,bar);ctx.fillRect(canvX,canvY+bar,bar,outerCH-bar*2);ctx.fillRect(canvX+outerCW-bar,canvY+bar,bar,outerCH-bar*2);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(canvX,canvY,outerCW,outerCH);ctx.restore();
+  const totalMechW=Math.round(fullRight-fullLeft);
+  const dimTopY=Math.min(canvY,apY)-36;
+  dimArrow(ctx,xOf(fullLeft),dimTopY,xOf(fullRight),dimTopY,(totalMechW+'mm total mechanism').toUpperCase(),'#000','#000','h');
+  const canvHDimX=mirrorLeft?canvX+outerCW+16:canvX-16;
+  dimArrow(ctx,canvHDimX,canvY,canvHDimX,canvY+outerCH,(c.outerCanvH+'mm canvas').toUpperCase(),'#000','#000','v');
+  dimArrow(ctx,canvX,dimTopY,canvX+outerCW,dimTopY,(c.outerCanvW+'mm canvas').toUpperCase(),'#000','#000','h');
+}
 
-    function drawCnv() {
-        const d = getDims();
-        if (isSplit) {
-            drawOneCanvas(cnvLeft,  d, 'left');
-            drawOneCanvas(cnvRight, d, 'right');
-        } else {
-            drawOneCanvas(cnvLeft, d, null);
-        }
-        updateArrows();
-    }
+function syncMotorTubeFields(){
+  if(isSIDE())return;
+  const pich=isPICH(), defW=pich?PICH_MOTOR_W:PIC_MOTOR_W, defH=pich?PICH_MOTOR_H:PIC_MOTOR_H;
+  const wInp=document.getElementById('motorTubeW'), hInp=document.getElementById('motorTubeH');
+  if(motorTubeWOverride===null){wInp.value=defW;document.getElementById('motorTubeWReset').classList.remove('visible');}else document.getElementById('motorTubeWReset').classList.add('visible');
+  if(motorTubeHOverride===null){hInp.value=defH;document.getElementById('motorTubeHReset').classList.remove('visible');}else document.getElementById('motorTubeHReset').classList.add('visible');
+  const offInp=document.getElementById('motorToApertureOffset');
+  if(motorToApertureOffsetOverride===null){offInp.value=0;document.getElementById('motorToApertureOffsetReset').classList.remove('visible');}else document.getElementById('motorToApertureOffsetReset').classList.add('visible');
+}
 
-    function setupSplitLayout() {
-        container.innerHTML = '';
-        const wrapper = document.createElement('div');
-        wrapper.className = 'split-canvas-wrapper';
-        ['left', 'right'].forEach(side => {
-            const half = document.createElement('div');
-            half.className = 'canvas-half';
-            const lbl = document.createElement('div');
-            lbl.className = 'split-label';
-            lbl.textContent = side === 'left' ? 'LEFT CANVAS' : 'RIGHT CANVAS';
-            const cnv = document.createElement('canvas');
-            cnv.className = 'has-image';
-            half.appendChild(lbl);
-            half.appendChild(cnv);
-            wrapper.appendChild(half);
-            if (side === 'left')  cnvLeft  = cnv;
-            else                  cnvRight = cnv;
-        });
-        container.appendChild(wrapper);
-        attachDrag(cnvLeft,  'left');
-        attachDrag(cnvRight, 'right');
-    }
-
-    function setupSingleLayout() {
-        container.innerHTML = '';
-        const cnv = document.createElement('canvas');
-        cnv.id = 'cnvSingle';
-        container.appendChild(cnv);
-        cnvLeft  = cnv;
-        cnvRight = null;
-        attachDrag(cnvLeft, null);
-    }
-
-    function canvasCoords(e, cnv, d) {
-        const rect = cnv.getBoundingClientRect();
-        const src  = e.touches ? e.touches[0] : e;
-        return {
-            x: (src.clientX - rect.left) * (d.totalW / rect.width),
-            y: (src.clientY - rect.top)  * (d.totalH / rect.height)
-        };
-    }
-
-    function clampOffset(d, side) {
-        if (!upImg) return;
-        if (side) {
-            const fullAreaW = (d.cW * 2) + (d.imgZone * 2);
-            const fullAreaH = d.cH + (d.imgZone * 2);
-            const scl = Math.max(fullAreaW / upImg.width, fullAreaH / upImg.height);
-            const sW = upImg.width * scl, sH = upImg.height * scl;
-            const maxX = (sW - fullAreaW) / 2, maxY = (sH - fullAreaH) / 2;
-            imgXOffset = Math.max(-maxX, Math.min(maxX, imgXOffset));
-            imgYOffset = Math.max(-maxY, Math.min(maxY, imgYOffset));
-        } else {
-            const scl = Math.max(d.imgAreaW / upImg.width, d.imgAreaH / upImg.height);
-            const sW = upImg.width * scl, sH = upImg.height * scl;
-            imgXOffset = Math.max(-(sW - d.imgAreaW)/2, Math.min((sW - d.imgAreaW)/2, imgXOffset));
-            imgYOffset = Math.max(-(sH - d.imgAreaH)/2, Math.min((sH - d.imgAreaH)/2, imgYOffset));
-        }
-    }
-
-    function attachDrag(cnv, side) {
-        function onStart(e) {
-            if (!upImg) return;
-            if (e.touches) e.preventDefault();
-            isDragging = true;
-            activeDragCnv = cnv;
-            const d = getDims();
-            const p = canvasCoords(e, cnv, d);
-            dragStartX = p.x - imgXOffset;
-            dragStartY = p.y - imgYOffset;
-            cnv.classList.add('dragging');
-        }
-        function onMove(e) {
-            if (!isDragging || activeDragCnv !== cnv || !upImg) return;
-            if (e.touches) e.preventDefault();
-            const d = getDims();
-            const p = canvasCoords(e, cnv, d);
-            imgXOffset = p.x - dragStartX;
-            imgYOffset = p.y - dragStartY;
-            clampOffset(d, side);
-            drawCnv();
-        }
-        function onEnd() { isDragging = false; activeDragCnv = null; cnv.classList.remove('dragging'); }
-        cnv.addEventListener('mousedown',   onStart);
-        cnv.addEventListener('mousemove',   onMove);
-        cnv.addEventListener('mouseup',     onEnd);
-        cnv.addEventListener('mouseleave',  onEnd);
-        cnv.addEventListener('touchstart',  onStart, { passive: false });
-        cnv.addEventListener('touchmove',   onMove,  { passive: false });
-        cnv.addEventListener('touchend',    onEnd);
-        cnv.addEventListener('touchcancel', onEnd);
-    }
-
-    function updateArrows() {
-        const ids = ['leftArrow','rightArrow','upArrow','downArrow'];
-        if (!upImg) { ids.forEach(id => document.getElementById(id).disabled = true); return; }
-        const d = getDims();
-        let maxX, maxY;
-        if (isSplit) {
-            const fullAreaW = (d.cW * 2) + (d.imgZone * 2);
-            const fullAreaH = d.cH + (d.imgZone * 2);
-            const scl = Math.max(fullAreaW / upImg.width, fullAreaH / upImg.height);
-            maxX = (upImg.width * scl - fullAreaW) / 2;
-            maxY = (upImg.height * scl - fullAreaH) / 2;
-        } else {
-            const scl = Math.max(d.imgAreaW / upImg.width, d.imgAreaH / upImg.height);
-            maxX = (upImg.width * scl - d.imgAreaW) / 2;
-            maxY = (upImg.height * scl - d.imgAreaH) / 2;
-        }
-        document.getElementById('leftArrow').disabled  = imgXOffset <= -maxX;
-        document.getElementById('rightArrow').disabled = imgXOffset >= maxX;
-        document.getElementById('upArrow').disabled    = imgYOffset <= -maxY;
-        document.getElementById('downArrow').disabled  = imgYOffset >= maxY;
-    }
-
-    function shiftImage(dir) {
-        if (!upImg) return;
-        const d = getDims(), amt = 2;
-        if (dir === 'left')  imgXOffset -= amt;
-        if (dir === 'right') imgXOffset += amt;
-        if (dir === 'up')    imgYOffset -= amt;
-        if (dir === 'down')  imgYOffset += amt;
-        clampOffset(d, isSplit ? 'left' : null);
-        drawCnv();
-    }
-
-    function startMoving(dir) { if (!intervalId) intervalId = setInterval(() => shiftImage(dir), 80); }
-    function stopMoving()      { clearInterval(intervalId); intervalId = null; }
-
-    ['leftArrow','rightArrow','upArrow','downArrow'].forEach(id => {
-        const btn = document.getElementById(id);
-        const dir = id.replace('Arrow', '');
-        btn.addEventListener('click', () => shiftImage(dir));
-        btn.addEventListener('mousedown', () => startMoving(dir));
-        btn.addEventListener('mouseup',   stopMoving);
-        btn.addEventListener('mouseleave',stopMoving);
-    });
-
-    document.getElementById('picsplitToggle').addEventListener('click', () => {
-        isSplit = !isSplit;
-        document.getElementById('psBox').textContent = isSplit ? '✓' : '';
-        document.getElementById('picsplitToggle').classList.toggle('active', isSplit);
-        imgXOffset = 0; imgYOffset = 0;
-        if (isSplit) setupSplitLayout();
-        else         setupSingleLayout();
-        drawCnv();
-    });
-
-    document.getElementById('upBtn').addEventListener('click', () => document.getElementById('imgLdr').click());
-
-    document.getElementById('imgLdr').addEventListener('change', e => {
-        const loader = document.getElementById('loader');
-        loader.style.display = 'block';
-        const rdr = new FileReader();
-        rdr.onload = ev => {
-            upImg = new Image();
-            upImg.onload = () => {
-                imgXOffset = 0; imgYOffset = 0;
-                loader.style.display = 'none';
-                if (!isSplit) cnvLeft.classList.add('has-image');
-                drawCnv();
-            };
-            upImg.src = ev.target.result;
-        };
-        rdr.readAsDataURL(e.target.files[0]);
-    });
-
-    document.getElementById('rmvBtn').addEventListener('click', () => {
-        upImg = null; imgXOffset = 0; imgYOffset = 0;
-        document.getElementById('loader').style.display = 'none';
-        if (!isSplit) cnvLeft.classList.remove('has-image');
-        drawCnv();
-    });
-
-    document.getElementById('presetBtns').querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.getElementById('cW').value = btn.dataset.w;
-            document.getElementById('cH').value = btn.dataset.h;
-            document.getElementById('sideWrap').value = 44;
-            selectedPresetName = btn.dataset.name || null;
-            const targetSplit = btn.dataset.split === 'true';
-            if (isSplit !== targetSplit) {
-                isSplit = targetSplit;
-                document.getElementById('psBox').textContent = isSplit ? '✓' : '';
-                document.getElementById('picsplitToggle').classList.toggle('active', isSplit);
-                imgXOffset = 0; imgYOffset = 0;
-                if (isSplit) setupSplitLayout();
-                else         setupSingleLayout();
-            }
-            drawCnv();
-        });
-    });
-
-    
-    ['cW','cH'].forEach(id => {
-        document.getElementById(id).addEventListener('input', () => {
-            selectedPresetName = null;
-            drawCnv();
-        });
-    });
-    document.getElementById('sideWrap').addEventListener('input', drawCnv);
-    document.getElementById('fn').addEventListener('input', drawCnv);
-
-    function fmt(n) { return Number.isInteger(n) ? n.toString() : n.toFixed(1); }
-
-    function drawMeasurement(ctx, x1, y1, x2, y2, label, type, textPos) {
-        ctx.save();
-        ctx.strokeStyle = '#333'; ctx.fillStyle = '#333';
-        ctx.lineWidth = 1; ctx.font = '15px Arial, sans-serif';
-        const tk = 5;
-        if (type === 'h' || type === 'iso_h') {
-            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2 || y1); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x1, y1-tk); ctx.lineTo(x1, y1+tk); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x2, (y2||y1)-tk); ctx.lineTo(x2, (y2||y1)+tk); ctx.stroke();
-            if (textPos === 'below') {
-                ctx.textAlign = 'center'; ctx.fillText(label, (x1+x2)/2, (y1+(y2||y1))/2 + 18);
-            } else if (textPos === 'above_left') {
-                ctx.textAlign = 'right'; ctx.fillText(label, x1 - 4, y1 + 5);
-            } else if (textPos === 'above_iso') {
-                ctx.textAlign = 'center'; ctx.fillText(label, (x1+x2)/2, (y1+y2)/2 - 12);
-            } else {
-                ctx.textAlign = 'center'; ctx.fillText(label, (x1+x2)/2, (y1+(y2||y1))/2 - 8);
-            }
-        } else {
-            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 || x1, y2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x1-tk, y1); ctx.lineTo(x1+tk, y1); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo((x2||x1)-tk, y2); ctx.lineTo((x2||x1)+tk, y2); ctx.stroke();
-            if (textPos === 'right') {
-                ctx.textAlign = 'left'; ctx.fillText(label, (x1+(x2||x1))/2 + 8, (y1+y2)/2 + 5);
-            } else {
-                ctx.save(); ctx.translate((x1+(x2||x1))/2-12,(y1+y2)/2); ctx.rotate(-Math.PI/2);
-                ctx.textAlign = 'center'; ctx.fillText(label, 0, 0); ctx.restore();
-            }
-        }
-        ctx.restore();
-    }
-
-    function drawQuadImage(ctx, pts, img) {
-        const [tl, tr, br, bl] = pts;
-        const w = img.width, h = img.height;
-        function drawTri(p0, p1, p2, uv0, uv1, uv2) {
-            const denom = uv0[0]*(uv1[1]-uv2[1]) + uv1[0]*(uv2[1]-uv0[1]) + uv2[0]*(uv0[1]-uv1[1]);
-            if (Math.abs(denom) < 0.0001) return;
-            const a  = ((p0[0]-p2[0])*(uv1[1]-uv2[1]) - (p1[0]-p2[0])*(uv0[1]-uv2[1])) / denom;
-            const b  = ((p0[1]-p2[1])*(uv1[1]-uv2[1]) - (p1[1]-p2[1])*(uv0[1]-uv2[1])) / denom;
-            const c  = ((p1[0]-p2[0])*(uv0[0]-uv2[0]) - (p0[0]-p2[0])*(uv1[0]-uv2[0])) / denom;
-            const ff = ((p1[1]-p2[1])*(uv0[0]-uv2[0]) - (p0[1]-p2[1])*(uv1[0]-uv2[0])) / denom;
-            const e  = p2[0] - a*uv2[0] - c*uv2[1];
-            const g  = p2[1] - b*uv2[0] - ff*uv2[1];
-            ctx.save(); ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]);
-            ctx.closePath(); ctx.clip(); ctx.transform(a, b, c, ff, e, g); ctx.drawImage(img, 0, 0, w, h); ctx.restore();
-        }
-        drawTri(tl, tr, bl, [0,0], [w,0], [0,h]);
-        drawTri(tr, br, bl, [w,0], [w,h], [0,h]);
-    }
-
-    function getImgCanvas(d, regionX, regionY, regionW, regionH, flipH, outW, outH, splitSide) {
-        outW = Math.max(1, Math.round(outW || regionW));
-        outH = Math.max(1, Math.round(outH || regionH));
-        const off = document.createElement('canvas');
-        off.width = outW; off.height = outH;
-        const oc = off.getContext('2d');
-        if (!upImg) { oc.fillStyle = '#c8c8c8'; oc.fillRect(0, 0, outW, outH); return off; }
-        let drawP;
-        if (splitSide) {
-            drawP = getSplitDraw(d, splitSide);
-        } else {
-            const scl = Math.max(d.imgAreaW / upImg.width, d.imgAreaH / upImg.height);
-            const sW  = upImg.width * scl, sH = upImg.height * scl;
-            drawP = {
-                x: d.imgAreaX + (d.imgAreaW - sW) / 2 + imgXOffset,
-                y: d.imgAreaY + (d.imgAreaH - sH) / 2 + imgYOffset,
-                w: sW, h: sH
-            };
-        }
-        const rx = outW / regionW, ry = outH / regionH;
-        const dx = (drawP.x - regionX) * rx;
-        const dy = (drawP.y - regionY) * ry;
-        const dw = drawP.w * rx, dh = drawP.h * ry;
-        oc.save();
-        if (flipH) { oc.translate(outW, 0); oc.scale(-1, 1); }
-        oc.drawImage(upImg, flipH ? -(dx + dw) + outW : dx, dy, dw, dh);
-        oc.restore();
-        return off;
-    }
-
-    function drawIsoCanvas(pc, ox, oy, d, fw, fh, sw, th, woodColor, woodDark, woodLight, splitSide, showDepth) {
-        const topTL = [ox,       oy], topTR = [ox+fw,    oy], topBR = [ox+fw+sw, oy-th], topBL = [ox+sw,    oy-th];
-        const sideTL = [ox+fw,    oy], sideTR = [ox+fw+sw, oy-th], sideBR = [ox+fw+sw, oy-th+fh], sideBL = [ox+fw,    oy+fh];
-        pc.save(); pc.beginPath(); pc.moveTo(topTL[0],topTL[1]); pc.lineTo(topTR[0],topTR[1]); pc.lineTo(topBR[0],topBR[1]); pc.lineTo(topBL[0],topBL[1]); pc.closePath();
-        const tg = pc.createLinearGradient(topTL[0],topTL[1],topBL[0],topBL[1]);
-        tg.addColorStop(0, woodLight); tg.addColorStop(1, woodColor); pc.fillStyle = tg; pc.fill(); pc.restore();
-        const topImg = getImgCanvas(d, d.faceX, d.bleed+d.backWrap, d.cW, d.sideWrap, false, fw, th, splitSide);
-        drawQuadImage(pc, [topBL,topBR,topTR,topTL], topImg);
-        pc.save(); pc.beginPath(); pc.moveTo(sideTL[0],sideTL[1]); pc.lineTo(sideTR[0],sideTR[1]); pc.lineTo(sideBR[0],sideBR[1]); pc.lineTo(sideBL[0],sideBL[1]); pc.closePath();
-        const sg = pc.createLinearGradient(sideTL[0],0,sideTR[0],0);
-        sg.addColorStop(0, woodDark); sg.addColorStop(1, woodColor); pc.fillStyle = sg; pc.fill(); pc.restore();
-        const sideImg = getImgCanvas(d, d.totalW-d.bleed-d.backWrap-d.sideWrap, d.faceY, d.sideWrap, d.cH, false, sw, fh, splitSide);
-        drawQuadImage(pc, [sideTL,sideTR,sideBR,sideBL], sideImg);
-        const frontImg = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, fw, fh, splitSide);
-        pc.save(); pc.beginPath(); pc.rect(ox, oy, fw, fh); pc.clip(); pc.drawImage(frontImg, ox, oy, fw, fh); pc.restore();
-        pc.strokeStyle = '#00000080'; pc.lineWidth = 1; pc.strokeRect(ox, oy, fw, fh);
-        pc.beginPath(); pc.moveTo(topTL[0],topTL[1]); pc.lineTo(topBL[0],topBL[1]); pc.lineTo(topBR[0],topBR[1]); pc.lineTo(topTR[0],topTR[1]); pc.moveTo(topBR[0],topBR[1]); pc.lineTo(sideBR[0],sideBR[1]);
-        pc.strokeStyle = '#00000060'; pc.lineWidth = 0.8; pc.stroke();
-        if (showDepth) {
-            drawMeasurement(pc, topTR[0], topTR[1]-10, topBR[0], topBR[1]-10, `${fmt(d.sideWrap)}mm`, 'iso_h', 'above_iso');
-        }
-    }
-
-    function drawBackPanel(pc, bx, fy, d, fw, fh, woodColor, splitSide, showEdgeBatten) {
-        const batPxW = Math.round(fw * (d.sideWrap / d.cW)), batPxH = Math.round(fh * (d.sideWrap / d.cH));
-        const bwPxW  = Math.round(fw * (d.backWrap  / d.cW)), bwPxH  = Math.round(fh * (d.backWrap  / d.cH));
-        const intPxW = fw - batPxW * 2, intPxH = fh - batPxH * 2;
-        const back = document.createElement('canvas'); back.width = fw; back.height = fh;
-        const bc = back.getContext('2d'); const flipped = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, true, fw, fh, splitSide);
-        bc.drawImage(flipped, 0, 0); const wr = new Path2D(); wr.rect(bwPxW, bwPxH, fw-bwPxW*2, fh-bwPxH*2); wr.rect(batPxW, batPxH, intPxW, intPxH);
-        bc.save(); bc.clip(wr, 'evenodd'); bc.fillStyle = woodColor; bc.fillRect(0, 0, fw, fh); bc.restore();
-        bc.fillStyle = '#ffffff'; bc.fillRect(batPxW, batPxH, intPxW, intPxH);
-        pc.drawImage(back, bx, fy); pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(bx, fy, fw, fh);
-        const intX1 = bx+batPxW, intX2 = bx+batPxW+intPxW, intY1 = fy+batPxH, intY2 = fy+batPxH+intPxH;
-
-        
-        drawMeasurement(pc, intX1, intY1+18, intX2, intY1+18, mmLabel(d.cW-d.sideWrap*2), 'h', 'below');
-        
-        const hLineX = intX1 + 18;
-        const tk = 5;
-        pc.save();
-        pc.strokeStyle = '#333'; pc.fillStyle = '#333'; pc.lineWidth = 1;
-        
-        pc.beginPath(); pc.moveTo(hLineX, intY1); pc.lineTo(hLineX, intY2); pc.stroke();
-        
-        pc.beginPath(); pc.moveTo(hLineX-tk, intY1); pc.lineTo(hLineX+tk, intY1); pc.stroke();
-        pc.beginPath(); pc.moveTo(hLineX-tk, intY2); pc.lineTo(hLineX+tk, intY2); pc.stroke();
-        
-        const hTextY = Math.max(intY1 + 60, (intY1 + intY2) / 2);
-        pc.font = '15px Arial, sans-serif';
-        pc.save(); pc.translate(hLineX + 20, hTextY); pc.rotate(-Math.PI/2);
-        pc.textAlign = 'center'; pc.fillText(mmLabel(d.cH-d.sideWrap*2), 0, 0); pc.restore();
-        pc.restore();
-
-        if (showEdgeBatten !== false) {
-            const batMidY = fy + Math.round(fh / 2);
-            drawMeasurement(pc, bx+fw-batPxW, batMidY, bx+fw, batMidY, mmLabel(d.sideWrap), 'h', 'above_left');
-        }
-    }
-
-    function getProofTitle(fn, presetName) {
-        if (fn && presetName) return `${fn} — ${presetName}`;
-        if (fn) return fn;
-        if (presetName) return presetName;
-        return '';
-    }
-
-    document.getElementById('jpgBtn').addEventListener('click', () => {
-        const d  = getDims(); const fn = document.getElementById('fn').value.trim();
-        if (isSplit) generateSplitProof(d, fn); else generateSingleProof(d, fn);
-    });
-
-    function generateSingleProof(d, fn) {
-        const woodColor = '#C8A96E', woodDark = '#8B6340', woodLight = '#E8C888', MARGIN = 80, TOP_H = 160, GAP = 100;
-        const aspect = d.cH > 0 ? d.cW / d.cH : 1, frontH = Math.min(480, Math.round(500 / aspect)), frontW = Math.round(frontH * aspect);
-        const batH = Math.round(frontH * (d.sideWrap / d.cH)), batW = Math.round(frontW * (d.sideWrap / d.cW));
-        const thD = Math.max(20, Math.round(batH * 0.7)), swD = Math.max(20, Math.round(batW * 0.7));
-        const isc = 0.90, ifw = Math.round(frontW * isc), ifh = Math.round(frontH * isc), isw = Math.round(swD * isc), ith = Math.round(thD * isc);
-        const isoTotalW = ifw + isw, isoTotalH = ifh + ith, panelMaxH = Math.max(frontH, isoTotalH), isoLS = Math.round(MARGIN * 0.40);
-        const TOTAL_W = (MARGIN-isoLS)*2 + isoTotalW + GAP + frontW + GAP + frontW + 60, TOTAL_H = TOP_H + panelMaxH + 140;
-        const proof = document.createElement('canvas'); proof.width = TOTAL_W; proof.height = TOTAL_H;
-        const pc = proof.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, TOTAL_W, TOTAL_H);
-        pc.fillStyle = '#000'; pc.font = 'bold 26px Arial'; pc.textAlign = 'center';
-        const titleStr = getProofTitle(fn, selectedPresetName);
-        const proofLabel = titleStr ? `${titleStr} — CANVAS PROOF` : 'CANVAS PROOF';
-        pc.fillText(proofLabel, TOTAL_W/2, 46);
-        const pY = TOP_H, iX = MARGIN - isoLS, fX = iX + isoTotalW + GAP, bX = fX + frontW + GAP, coI = Math.round((panelMaxH - isoTotalH) / 2), coF = Math.round((panelMaxH - frontH) / 2);
-        drawIsoCanvas(pc, iX+isw, pY+coI+ith, d, ifw, ifh, isw, ith, woodColor, woodDark, woodLight, null, true);
-        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('ISOMETRIC VIEW', iX+isw+ifw/2, pY+coI+ith+ifh+22);
-        const fImg = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, frontW, frontH, null);
-        pc.save(); pc.beginPath(); pc.rect(fX, pY+coF, frontW, frontH); pc.clip(); pc.drawImage(fImg, fX, pY+coF, frontW, frontH); pc.restore(); pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(fX, pY+coF, frontW, frontH);
-        drawMeasurement(pc, fX, pY+coF-20, fX+frontW, pY+coF-20, mmLabel(d.cW), 'h');
-        drawMeasurement(pc, fX-20, pY+coF, fX-20, pY+coF+frontH, mmLabel(d.cH), 'v');
-        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('FRONT', fX+frontW/2, pY+coF+frontH+22);
-        drawBackPanel(pc, bX, pY+coF, d, frontW, frontH, woodColor, null); pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('BACK', bX+frontW/2, pY+coF+frontH+22);
-
-        
-        const discY = TOP_H + panelMaxH + 70;
-        pc.font = '13px Arial'; pc.fillStyle = '#555'; pc.textAlign = 'center';
-        const presetStr = selectedPresetName ? `${selectedPresetName} ` : '';
-        pc.fillText('This proof shows how your artwork will appear on your canvas.', TOTAL_W/2, discY);
-        pc.fillText('Please check the image positioning and cropping carefully, then confirm your approval before we proceed to production.', TOTAL_W/2, discY+20);
-
-        const dlFn = fn ? `${fn} - CANVAS PROOF.jpg` : 'CANVAS PROOF.jpg';
-        const a = document.createElement('a'); a.href = proof.toDataURL('image/jpeg', 0.93); a.download = dlFn; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }
-
-    function generateSplitProof(d, fn) {
-        const woodColor = '#C8A96E', woodDark = '#8B6340', woodLight = '#E8C888', TOP_H = 160, MARGIN = 50, GAP = 50, SEC_GAP = 70;
-        const aspect  = d.cH > 0 ? d.cW / d.cH : 1, singleH = Math.min(280, Math.round(300 / aspect)), singleW = Math.round(singleH * aspect), doubleW = singleW * 2;
-        const batH = Math.round(singleH * (d.sideWrap / d.cH)), batW = Math.round(singleW * (d.sideWrap / d.cW)), thD  = Math.max(12, Math.round(batH * 0.7)), swD  = Math.max(12, Math.round(batW * 0.7));
-        const isc  = 0.78, ifw  = Math.round(singleW * isc), ifh = Math.round(singleH * isc), isw  = Math.round(swD * isc), ith = Math.round(thD * isc), SEP  = Math.round(ifw * 0.14);
-        const isoTouchW = ifw*2 + isw, isoGapW = ifw*2 + SEP + isw, isoBlockW = isoTouchW + GAP + isoGapW, isoH = ifh + ith, panelMaxH = Math.max(singleH, isoH);
-        const TOTAL_W = MARGIN*2 + isoBlockW + SEC_GAP + doubleW + SEC_GAP + doubleW + 100, TOTAL_H = TOP_H + panelMaxH + 180;
-        const proof = document.createElement('canvas'); proof.width = TOTAL_W; proof.height = TOTAL_H;
-        const pc = proof.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, TOTAL_W, TOTAL_H);
-        pc.fillStyle = '#000'; pc.font = 'bold 26px Arial'; pc.textAlign = 'center';
-        const titleStr = getProofTitle(fn, selectedPresetName);
-        const proofLabel = titleStr ? `${titleStr} — PICSPLIT CANVAS PROOF` : 'PICSPLIT CANVAS PROOF';
-        pc.fillText(proofLabel, TOTAL_W/2, 46);
-        const pY = TOP_H, coIso = Math.round((panelMaxH - isoH) / 2), coFlat = Math.round((panelMaxH - singleH) / 2);
-        const isoTouchStartX = MARGIN, isoGapStartX = MARGIN + isoTouchW + GAP, frontStartX = MARGIN + isoBlockW + SEC_GAP, backStartX = frontStartX + doubleW + SEC_GAP;
-        function drawIsoPair(startX, gap, isFirstPair) {
-            const baseY = pY + coIso + ith, leftOx  = startX + isw, rightOx = leftOx + ifw + gap;
-            drawIsoCanvas(pc, leftOx,  baseY, d, ifw, ifh, isw, ith, woodColor, woodDark, woodLight, 'left', isFirstPair);
-            drawIsoCanvas(pc, rightOx, baseY, d, ifw, ifh, isw, ith, woodColor, woodDark, woodLight, 'right', false);
-            if (gap === 0) { pc.strokeStyle = '#00000050'; pc.lineWidth = 1.5; pc.setLineDash([]); pc.beginPath(); pc.moveTo(leftOx + ifw, baseY); pc.lineTo(leftOx + ifw, baseY + ifh); pc.stroke(); }
-        }
-        drawIsoPair(isoTouchStartX, 0, true); drawIsoPair(isoGapStartX, SEP, false);
-        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('ISOMETRIC VIEWS', MARGIN + isoBlockW/2, pY + coIso + ith + ifh + 22);
-        const fy = pY + coFlat;
-        const lFront = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, singleW, singleH, 'left'), rFront = getImgCanvas(d, d.faceX, d.faceY, d.cW, d.cH, false, singleW, singleH, 'right');
-        pc.save(); pc.beginPath(); pc.rect(frontStartX, fy, singleW, singleH); pc.clip(); pc.drawImage(lFront, frontStartX, fy, singleW, singleH); pc.restore();
-        pc.save(); pc.beginPath(); pc.rect(frontStartX+singleW, fy, singleW, singleH); pc.clip(); pc.drawImage(rFront, frontStartX+singleW, fy, singleW, singleH); pc.restore();
-        pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(frontStartX, fy, singleW, singleH); pc.strokeRect(frontStartX+singleW, fy, singleW, singleH);
-        drawMeasurement(pc, frontStartX, fy-20, frontStartX+singleW, fy-20, mmLabel(d.cW), 'h');
-        drawMeasurement(pc, frontStartX+singleW, fy-20, frontStartX+doubleW, fy-20, mmLabel(d.cW), 'h');
-        drawMeasurement(pc, frontStartX, fy-46, frontStartX+doubleW, fy-46, mmLabel(d.cW*2) + ' TOTAL', 'h');
-        drawMeasurement(pc, frontStartX-20, fy, frontStartX-20, fy+singleH, mmLabel(d.cH), 'v');
-        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.fillText('LEFT', frontStartX+singleW/2, fy+singleH+22); pc.fillText('RIGHT', frontStartX+singleW+singleW/2, fy+singleH+22); pc.fillText('FRONT VIEW', frontStartX+doubleW/2, fy+singleH+42);
-        drawBackPanel(pc, backStartX, fy, d, singleW, singleH, woodColor, 'left',  false); drawBackPanel(pc, backStartX+singleW, fy, d, singleW, singleH, woodColor, 'right', false);
-        pc.strokeStyle = '#000'; pc.lineWidth = 1.5; pc.strokeRect(backStartX, fy, singleW, singleH); pc.strokeRect(backStartX+singleW, fy, singleW, singleH);
-        const batPxW = Math.round(singleW * (d.sideWrap / d.cW)), batMidY = fy + Math.round(singleH / 2), centreX1 = backStartX + singleW - batPxW, centreX2 = backStartX + singleW + batPxW;
-        drawMeasurement(pc, centreX1, batMidY, centreX2, batMidY, mmLabel(d.sideWrap * 2), 'h', 'above_left');
-        drawMeasurement(pc, backStartX + (singleW * 2) - batPxW, batMidY, backStartX + (singleW * 2), batMidY, mmLabel(d.sideWrap), 'h', 'above_left');
-        pc.font = 'bold 13px Arial'; pc.fillStyle = '#000'; pc.textAlign = 'center'; pc.fillText('RIGHT', backStartX+singleW/2, fy+singleH+22); pc.fillText('LEFT', backStartX+singleW+singleW/2, fy+singleH+22); pc.fillText('BACK VIEW', backStartX+doubleW/2, fy+singleH+42);
-
-        
-        const discY = TOP_H + panelMaxH + 100;
-        pc.font = '13px Arial'; pc.fillStyle = '#555'; pc.textAlign = 'center';
-        const presetStr = selectedPresetName ? `${selectedPresetName} ` : '';
-        pc.fillText('This proof shows how your artwork will appear on your canvas.', TOTAL_W/2, discY);
-        pc.fillText('Please check the image positioning and cropping carefully, then confirm your approval before we proceed to production.', TOTAL_W/2, discY+20);
-
-        const dlFn = fn ? `${fn} - PICSPLIT PROOF.jpg` : 'PICSPLIT PROOF.jpg';
-        const a = document.createElement('a'); a.href = proof.toDataURL('image/jpeg', 0.93); a.download = dlFn; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }
-
-    document.getElementById('pdfBtn').addEventListener('click', () => {
-        const d  = getDims(); const fn = document.getElementById('fn').value.trim() || ''; const PT = 72 / 25.4;
-        function buildPdf(side) {
-            const pdf = new jsPDF({ orientation: d.totalW >= d.totalH ? 'landscape' : 'portrait', unit: 'pt', format: [d.totalW * PT, d.totalH * PT] });
-            pdf.setFillColor(255,255,255); pdf.rect(0, 0, d.totalW*PT, d.totalH*PT, 'F');
-            if (upImg) {
-                const tmp = document.createElement('canvas'); tmp.width = upImg.width; tmp.height = upImg.height; tmp.getContext('2d').drawImage(upImg, 0, 0); const dataUrl = tmp.toDataURL('image/jpeg', 1.0);
-                const drawP = side ? getSplitDraw(d, side) : {
-                    x: d.imgAreaX + (d.imgAreaW - (upImg.width * Math.max(d.imgAreaW/upImg.width, d.imgAreaH/upImg.height))) / 2 + imgXOffset,
-                    y: d.imgAreaY + (d.imgAreaH - (upImg.height * Math.max(d.imgAreaW/upImg.width, d.imgAreaH/upImg.height))) / 2 + imgYOffset,
-                    w: upImg.width * Math.max(d.imgAreaW/upImg.width, d.imgAreaH/upImg.height),
-                    h: upImg.height * Math.max(d.imgAreaW/upImg.width, d.imgAreaH/upImg.height)
-                };
-                pdf.addImage(dataUrl, 'JPEG', drawP.x*PT, drawP.y*PT, drawP.w*PT, drawP.h*PT);
-            }
-            pdf.setFillColor(255,255,255); pdf.rect(0, 0, d.totalW*PT, d.bleed*PT, 'F'); pdf.rect(0, (d.totalH-d.bleed)*PT, d.totalW*PT, d.bleed*PT, 'F'); pdf.rect(0, d.bleed*PT, d.bleed*PT, (d.totalH-d.bleed*2)*PT, 'F'); pdf.rect((d.totalW-d.bleed)*PT, d.bleed*PT, d.bleed*PT, (d.totalH-d.bleed*2)*PT, 'F');
-            const gL = getNum('guideLen')*PT, gT = 0.5*PT; pdf.setFillColor(0,0,0); pdf.rect(d.totalW*PT/2-gT/2, 0, gT, gL, 'F'); pdf.rect(d.totalW*PT/2-gT/2, d.totalH*PT-gL, gT, gL, 'F'); pdf.rect(0, d.totalH*PT/2-gT/2, gL, gT, 'F'); pdf.rect(d.totalW*PT-gL, d.totalH*PT/2-gT/2, gL, gT, 'F');
-            
-            const iW = d.cW-d.sideWrap*2, iH = d.cH-d.sideWrap*2, sideLabel = side ? ` | ${side.toUpperCase()} CANVAS` : ''; 
-            pdf.setFontSize(12); pdf.setTextColor(0,0,0); 
-            
-            const titlePart = fn ? fn : (selectedPresetName || '');
-            const specLabel = `Template Height: ${fmt(d.totalH)}mm  |  Template Width: ${fmt(d.totalW)}mm  |  Finished Canvas Height: ${fmt(d.cH)}mm  |  Finished Canvas Width: ${fmt(d.cW)}mm  |  Frame: ${fmt(d.sideWrap)}mm  |  Internal Frame Width: ${fmt(iW)}mm  |  Internal Frame Height: ${fmt(iH)}mm`;
-            const labelLine = titlePart ? `${titlePart}${sideLabel}  |  ${specLabel}` : `${sideLabel ? sideLabel.replace(' | ','') + '  |  ' : ''}${specLabel}`;
-            
-            pdf.text(labelLine, (d.bleed+3)*PT, (d.totalH-d.bleed+10)*PT);
-            return pdf;
-        }
-        const saveName = fn || selectedPresetName || 'canvas';
-        if (isSplit) { buildPdf('left').save(`${saveName} - LEFT CANVAS.pdf`); setTimeout(() => buildPdf('right').save(`${saveName} - RIGHT CANVAS.pdf`), 400); } else { buildPdf(null).save(`${saveName}.pdf`); }
-    });
-    attachDrag(cnvLeft, null); new ResizeObserver(drawCnv).observe(container); drawCnv();
+document.querySelectorAll('.sidebar input[type="number"]').forEach(inp=>{
+  inp.addEventListener('input',()=>{
+    if(inp.id==='tvW'||inp.id==='tvH'){document.getElementById('tvDiag').value='0';applyTVDimToCanvas();}
+    else if(inp.id==='apertureThick'){applyTVDimToCanvas();}
+    if(inp.id==='canvW'||inp.id==='canvH'||inp.id==='canvFrame'){selectedPresetName=null;drawCnv();updateDpiNote();}
+    updateInfo();draw();
+  });
 });
+document.getElementById('hookTop').addEventListener('change',()=>{updateInfo();draw();});
+document.getElementById('displayAbove').addEventListener('change',()=>{updateInfo();draw();});
+document.getElementById('motorTubeW').addEventListener('input',()=>{ const pich=isPICH(),def=pich?PICH_MOTOR_W:PIC_MOTOR_W,val=parseFloat(document.getElementById('motorTubeW').value);motorTubeWOverride=(isNaN(val)||val===def)?null:val;document.getElementById('motorTubeWReset').classList.toggle('visible',motorTubeWOverride!==null);updateInfo();draw(); });
+document.getElementById('motorTubeH').addEventListener('input',()=>{ const pich=isPICH(),def=pich?PICH_MOTOR_H:PIC_MOTOR_H,val=parseFloat(document.getElementById('motorTubeH').value);motorTubeHOverride=(isNaN(val)||val===def)?null:val;document.getElementById('motorTubeHReset').classList.toggle('visible',motorTubeHOverride!==null);updateInfo();draw(); });
+document.getElementById('motorTubeWReset').addEventListener('click',()=>{motorTubeWOverride=null;syncMotorTubeFields();updateInfo();draw();});
+document.getElementById('motorTubeHReset').addEventListener('click',()=>{motorTubeHOverride=null;syncMotorTubeFields();updateInfo();draw();});
+document.getElementById('motorOffset').addEventListener('input',()=>{ const val=parseFloat(document.getElementById('motorOffset').value);document.getElementById('motorOffsetReset').classList.toggle('visible',val!==35);updateInfo();draw(); });
+document.getElementById('motorOffsetReset').addEventListener('click',()=>{document.getElementById('motorOffset').value=35;document.getElementById('motorOffsetReset').classList.remove('visible');updateInfo();draw();});
+document.getElementById('motorToApertureOffset').addEventListener('input',()=>{ const val=parseFloat(document.getElementById('motorToApertureOffset').value);motorToApertureOffsetOverride=(isNaN(val)||val===0)?null:val;document.getElementById('motorToApertureOffsetReset').classList.toggle('visible',motorToApertureOffsetOverride!==null);updateInfo();draw(); });
+document.getElementById('motorToApertureOffsetReset').addEventListener('click',()=>{motorToApertureOffsetOverride=null;document.getElementById('motorToApertureOffset').value=0;document.getElementById('motorToApertureOffsetReset').classList.remove('visible');updateInfo();draw();});
+document.getElementById('sideApertureOffset').addEventListener('input',()=>{ const val=parseFloat(document.getElementById('sideApertureOffset').value);sideApertureOffsetOverride=(isNaN(val)||val===0)?null:val;document.getElementById('sideApertureOffsetReset').classList.toggle('visible',sideApertureOffsetOverride!==null);updateInfo();draw(); });
+document.getElementById('sideApertureOffsetReset').addEventListener('click',()=>{sideApertureOffsetOverride=null;document.getElementById('sideApertureOffset').value=0;document.getElementById('sideApertureOffsetReset').classList.remove('visible');updateInfo();draw();});
+
+document.getElementById('exportProofBtn').addEventListener('click', exportMechanismProof);
+
+function exportMechanismProof(){
+  const c=getCalc();
+  if(c.split){exportSplitProof(c);return;}
+  if(c.side){exportSideProof(c);return;}
+  exportPICProof(c);
+}
+
+function exportPICProof(c){
+  const GAP=60,TOP_H=160,BOTTOM_H=80,TITLE_H=36,LEFT_DIM=110,RIGHT_DIM=150,TOP_DIM=60,BOT_DIM=100,FRAME_DIM_PAD=90;
+  const aH=c.tvH>0?c.tvH+c.apertureThick*2:60, aW2=c.tvW>0?c.tvW+c.apertureThick*2:100;
+  const canvOffY=c.hookTop?-CANVAS_FRAME:c.frameH-c.outerCanvH+CANVAS_FRAME;
+  const motorH_mm=c.motorH, motorW_mm=c.motorW, actualMA=c.actualMotorToAperture;
+  const frameBottomUp=c.frameH, motorBottomFixed=frameBottomUp-c.motorOffset, motorFixedTop=motorBottomFixed-motorH_mm;
+  const canvBottomUp=canvOffY+c.outerCanvH;
+  const aFixedTop=!c.displayAbove?Math.max(motorBottomFixed+actualMA,canvBottomUp+CANVAS_FRAME):(motorFixedTop-actualMA-aH);
+  const tvTop_mm=aFixedTop+c.apertureThick, canvTopUp=canvOffY;
+  function sceneBounds(tVal){ const cb=tVal*c.travel+canvOffY+c.outerCanvH;const hp=Math.min(0,canvTopUp,aFixedTop);const lp=Math.max(c.frameH,cb,aFixedTop+aH,motorBottomFixed);return{hp,lp,totalH:lp-hp,maxW:Math.max(c.frameW,c.outerCanvW,aW2,motorW_mm)}; }
+  const bUp=sceneBounds(0),bDown=sceneBounds(1);
+  const bShared={hp:Math.min(bUp.hp,bDown.hp),lp:Math.max(bUp.lp,bDown.lp)};bShared.totalH=bShared.lp-bShared.hp;
+  function panelScale(sH,sW){return Math.min((1000-TOP_DIM-BOT_DIM)/sH,(1000-LEFT_DIM-RIGHT_DIM)/sW);}
+  const scaleUD=Math.min(panelScale(bUp.totalH,bUp.maxW),panelScale(bDown.totalH,bDown.maxW));
+  const scaleFrame=Math.min((1000-FRAME_DIM_PAD*2-60)/c.outerCanvH,(1000-FRAME_DIM_PAD*2)/c.outerCanvW);
+  const PANEL_W=1000, PROOF_W=PANEL_W*3+GAP*2, PROOF_H=TOP_H+TITLE_H+PANEL_W+BOTTOM_H;
+  const proof=document.createElement('canvas'); proof.width=PROOF_W; proof.height=PROOF_H;
+  const pc=proof.getContext('2d'); pc.fillStyle='#fff'; pc.fillRect(0,0,PROOF_W,PROOF_H);
+  pc.fillStyle='#000'; pc.font='bold 28px Arial'; pc.textAlign='center'; pc.fillText(activePreset+' GUIDE',PROOF_W/2,54);
+  pc.font='16px Arial'; pc.fillStyle='#555';
+  let presetLabel='Canvas '+c.canvW+' × '+c.canvH+'mm (outer '+c.outerCanvW+' × '+c.outerCanvH+'mm) | Frame '+c.frameW+' × '+c.frameH+'mm | Travel '+c.travel+'mm';
+  if(c.tvW>0&&c.tvH>0)presetLabel+=' | TV '+c.tvW+' × '+c.tvH+'mm | Aperture thickness '+c.apertureThick+'mm';
+  presetLabel+=' | Canvas profile '+CANVAS_FRAME+'mm × '+CANVAS_FRAME+'mm';
+  pc.fillText(presetLabel,PROOF_W/2,84);
+  function renderPanel(tVal,mode){
+    const off=document.createElement('canvas'); off.width=PANEL_W; off.height=PANEL_W;
+    const ctx=off.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,PANEL_W,PANEL_W);
+    const SCALE=mode==='FRAME'?scaleFrame:scaleUD;
+    function mm(v){return v*SCALE;}
+    const bounds=mode==='FRAME'?null:bShared;
+    const hp=bounds?bounds.hp:0;
+    const cx=PANEL_W/2;
+    let originY;
+    if(mode==='FRAME'){originY=60+(PANEL_W-60-40-c.outerCanvH*SCALE)/2-(c.hookTop?-CANVAS_FRAME:c.frameH-c.outerCanvH+CANVAS_FRAME)*SCALE;}
+    else{const usedH=bounds.totalH*SCALE;originY=TOP_DIM+(PANEL_W-TOP_DIM-BOT_DIM-usedH)/2-hp*SCALE;}
+    function yOf(y){return originY+mm(y);}
+    const canvOffY2=c.hookTop?-CANVAS_FRAME:c.frameH-c.outerCanvH+CANVAS_FRAME;
+    const t=tVal, frameMovedTop=t*c.travel, canvMovedTop=frameMovedTop+canvOffY2;
+    const frameLeft=cx-mm(c.frameW/2), frameTop=yOf(frameMovedTop), fStroke=mm(FRAME_STROKE);
+    const canvLeft=cx-mm(c.outerCanvW/2), canvTop=yOf(canvMovedTop);
+    const outerCW=mm(c.outerCanvW), outerCH=mm(c.outerCanvH), bar=mm(CANVAS_FRAME);
+    const motorLeft=cx-mm(motorW_mm/2), motorTop2=yOf(motorFixedTop);
+    const motorWpx=mm(motorW_mm), motorHpx=mm(motorH_mm);
+    const apLeft2=cx-mm(aW2/2), apTop2=yOf(aFixedTop), apW2=mm(aW2), apH2=mm(aH);
+    if(mode!=='FRAME'){
+      if(c.tvW>0&&c.tvH>0){ctx.fillStyle='#fff';ctx.fillRect(apLeft2,apTop2,apW2,apH2);ctx.save();let rg=new Path2D();rg.rect(apLeft2,apTop2,apW2,apH2);ctx.clip(rg);ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=20;ctx.strokeStyle='#000';ctx.lineWidth=20;ctx.strokeRect(apLeft2-10,apTop2-10,apW2+20,apH2+20);ctx.restore();ctx.strokeStyle='#f7f7f7';ctx.lineWidth=2;ctx.strokeRect(apLeft2,apTop2,apW2,apH2);ctx.save();ctx.beginPath();ctx.roundRect(cx-mm(c.tvW/2),yOf(tvTop_mm),mm(c.tvW),mm(c.tvH),2);ctx.clip();ctx.fillStyle='#111';ctx.fillRect(cx-mm(c.tvW/2),yOf(tvTop_mm),mm(c.tvW),mm(c.tvH));ctx.restore();ctx.font="600 11px Arial";ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((c.tvW+'mm (W) x '+c.tvH+'mm (H)').toUpperCase(),cx,yOf(tvTop_mm)+mm(c.tvH)/2+4);}
+      ctx.save();ctx.beginPath();ctx.roundRect(motorLeft,motorTop2,motorWpx,motorHpx,2);ctx.fillStyle='#2a2a2a';ctx.fill();ctx.strokeStyle='#444';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+      ctx.font="600 10px Arial";ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(('CASSETTE CUTOUT '+motorW_mm+' x '+motorH_mm+'mm').toUpperCase(),cx,motorTop2+motorHpx/2);
+      ctx.fillStyle='#b0b0b0';ctx.beginPath();ctx.rect(frameLeft,frameTop,mm(c.frameW),mm(c.frameH));ctx.rect(frameLeft+fStroke,frameTop+fStroke,mm(c.frameW)-fStroke*2,mm(c.frameH)-fStroke*2);ctx.fill('evenodd');ctx.strokeStyle='#888';ctx.lineWidth=1.5;ctx.strokeRect(frameLeft,frameTop,mm(c.frameW),mm(c.frameH));
+    }
+    if(c.needsCrossBrace){let bY=frameMovedTop+(c.hookTop?c.frameH+2+CANVAS_FRAME/2:-2-CANVAS_FRAME/2);ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(canvLeft+bar,yOf(bY)-mm(CANVAS_FRAME/2),outerCW-bar*2,mm(CANVAS_FRAME));ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(canvLeft+bar,yOf(bY)-mm(CANVAS_FRAME/2),outerCW-bar*2,mm(CANVAS_FRAME));ctx.restore();}
+    ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(canvLeft,canvTop,outerCW,bar);ctx.fillRect(canvLeft,canvTop+outerCH-bar,outerCW,bar);ctx.fillRect(canvLeft,canvTop+bar,bar,outerCH-bar*2);ctx.fillRect(canvLeft+outerCW-bar,canvTop+bar,bar,outerCH-bar*2);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(canvLeft,canvTop,outerCW,outerCH);ctx.restore();
+    if(mode!=='FRAME'){drawBrokenDimH(ctx,frameLeft,frameTop+mm(c.frameH)+14,frameLeft+mm(c.frameW),frameTop+mm(c.frameH)+14,c.frameW+'mm','#777',1.8);drawBrokenDimV(ctx,frameLeft+mm(c.frameW)+14,frameTop,frameLeft+mm(c.frameW)+14,frameTop+mm(c.frameH),c.frameH+'mm','#777',1.8);}
+    if(mode==='FRAME'){dimArrow(ctx,canvLeft-24,canvTop,canvLeft-24,canvTop+outerCH,(c.outerCanvH+'mm').toUpperCase(),'#000','#000','v');dimArrow(ctx,canvLeft,canvTop-32,canvLeft+outerCW,canvTop-32,(c.outerCanvW+'mm').toUpperCase(),'#000','#000','h');dimArrow(ctx,canvLeft+bar+34,canvTop+bar,canvLeft+bar+34,canvTop+outerCH-bar,(c.canvH+'mm').toUpperCase(),'#000','#000','v');dimArrow(ctx,canvLeft+bar,canvTop+bar+40,canvLeft+outerCW-bar,canvTop+bar+40,(c.canvW+'mm').toUpperCase(),'#000','#000','h');}
+    else{const lp=bounds?bounds.lp:0;const dimRightX=cx+Math.max(mm(c.frameW),outerCW,apW2,mm(motorW_mm))/2+30;dimArrow(ctx,dimRightX+44,yOf(hp),dimRightX+44,yOf(lp),(Math.round(bShared.totalH)+'mm total').toUpperCase(),'#000','#000','v');if(t>0.01)dimArrow(ctx,dimRightX+88,yOf(0),dimRightX+88,yOf(t*c.travel),('travel '+Math.round(t*c.travel)+'mm').toUpperCase(),'#cc3333','#cc3333','v');dimArrow(ctx,canvLeft+outerCW+20,canvTop,canvLeft+outerCW+20,canvTop+outerCH,(c.outerCanvH+'mm canvas').toUpperCase(),'#000','#000','v');}
+    return off;
+  }
+  const upPanel=renderPanel(0,'UP'), downPanel=renderPanel(1,'DOWN'), framePanel=renderPanel(0,'FRAME');
+  const startX=(PROOF_W-(PANEL_W*3+GAP*2))/2, panelY=TOP_H+TITLE_H;
+  pc.font='bold 22px Arial'; pc.fillStyle='#000'; pc.textAlign='center';
+  pc.fillText('UP POSITION',startX+PANEL_W/2,TOP_H+TITLE_H-10);
+  pc.fillText('DOWN POSITION',startX+PANEL_W+GAP+PANEL_W/2,TOP_H+TITLE_H-10);
+  pc.fillText('CANVAS DETAILS',startX+(PANEL_W+GAP)*2+PANEL_W/2,TOP_H+TITLE_H-10);
+  pc.drawImage(upPanel,startX,panelY,PANEL_W,PANEL_W);
+  pc.drawImage(downPanel,startX+PANEL_W+GAP,panelY,PANEL_W,PANEL_W);
+  pc.drawImage(framePanel,startX+(PANEL_W+GAP)*2,panelY,PANEL_W,PANEL_W);
+  pc.font='13px Arial'; pc.fillStyle='#888'; pc.textAlign='center'; pc.fillText('PIC Canvas Tool — Future Automation',PROOF_W/2,panelY+PANEL_W+50);
+  if(upImg){
+    const ROW_H=360, ROW_PAD=40, ROW_GAP=60, ROW_Y=TOP_H+TITLE_H+PANEL_W+90;
+    proof.height=ROW_Y+ROW_H+60;
+    pc.fillStyle='#fff'; pc.fillRect(0,panelY+PANEL_W+60,PROOF_W,ROW_H+60);
+    pc.font='bold 18px Arial'; pc.fillStyle='#000'; pc.textAlign='center';
+    pc.fillText('CANVAS VIEWS',PROOF_W/2,ROW_Y-12);
+    const d=getDims();
+    const aspect=d.cH>0?d.cW/d.cH:1;
+    const panH=Math.min(ROW_H-40,Math.round((ROW_H-40)/aspect));
+    const panW=Math.round(panH*aspect);
+    const batH=Math.round(panH*(d.sideWrap/d.cH)),batW=Math.round(panW*(d.sideWrap/d.cW));
+    const thD=Math.max(12,Math.round(batH*0.7)),swD=Math.max(12,Math.round(batW*0.7));
+    const isc=0.88,ifw=Math.round(panW*isc),ifh=Math.round(panH*isc),isw=Math.round(swD*isc),ith=Math.round(thD*isc);
+    const woodColor='#C8A96E',woodDark='#8B6340',woodLight='#E8C888';
+    const totalPanelW=ifw+isw+ROW_GAP+panW+ROW_GAP+panW;
+    const startPanelX=PROOF_W/2-totalPanelW/2;
+    const isoX=startPanelX, frontX=startPanelX+ifw+isw+ROW_GAP, backX=frontX+panW+ROW_GAP;
+    const panY=ROW_Y+10;
+    drawIsoCanvas(pc,isoX+isw,panY+ith,d,ifw,ifh,isw,ith,woodColor,woodDark,woodLight,null,false);
+    pc.font='bold 11px Arial';pc.fillStyle='#555';pc.textAlign='center';
+    pc.fillText('ISOMETRIC',isoX+isw+ifw/2,panY+ith+ifh+16);
+    const fImg=getImgCanvas(d,d.faceX,d.faceY,d.cW,d.cH,false,panW,panH,null);
+    pc.save();pc.beginPath();pc.rect(frontX,panY,panW,panH);pc.clip();pc.drawImage(fImg,frontX,panY,panW,panH);pc.restore();
+    pc.strokeStyle='#00000080';pc.lineWidth=1;pc.strokeRect(frontX,panY,panW,panH);
+    pc.font='bold 11px Arial';pc.fillStyle='#555';pc.textAlign='center';pc.fillText('FRONT',frontX+panW/2,panY+panH+16);
+    const bar=Math.round(panW*(d.sideWrap/d.cW));
+    const c2=getCalc(),hookTop=c2.hookTop,frameH=c2.frameH;
+    const canvTopRel_mm=hookTop?-CANVAS_FRAME:frameH-d.cH-CANVAS_FRAME;
+    pc.fillStyle='#c8c8c8';pc.fillRect(backX,panY,panW,panH);
+    pc.save();pc.globalAlpha=0.9;pc.fillStyle=woodColor;
+    pc.fillRect(backX,panY,panW,bar);pc.fillRect(backX,panY+panH-bar,panW,bar);
+    pc.fillRect(backX,panY+bar,bar,panH-bar*2);pc.fillRect(backX+panW-bar,panY+bar,bar,panH-bar*2);
+    if(c2.needsHorizBrace||c2.needsCrossBrace){
+      const scaleY=panH/d.cH, bY_mm=hookTop?frameH+2+CANVAS_FRAME/2:-2-CANVAS_FRAME/2;
+      const bYpx=panY+Math.round((bY_mm-canvTopRel_mm)*scaleY);
+      pc.fillRect(backX+bar,bYpx-bar/2,panW-bar*2,bar);
+    }
+    if(c2.needsVertBrace){
+      const scaleX=panW/d.cW, frameXpx=Math.round(c2.frameW*scaleX);
+      pc.fillRect(backX+frameXpx,panY+bar,bar,panH-bar*2);
+    }
+    pc.strokeStyle='#a07030';pc.lineWidth=1;pc.strokeRect(backX,panY,panW,panH);pc.restore();
+    pc.strokeStyle='#00000080';pc.lineWidth=1;pc.strokeRect(backX,panY,panW,panH);
+    pc.font='bold 11px Arial';pc.fillStyle='#555';pc.textAlign='center';pc.fillText('BACK',backX+panW/2,panY+panH+16);
+  }
+  const a=document.createElement('a'); a.href=proof.toDataURL('image/jpeg',0.93); a.download=activePreset+' GUIDE.jpg'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function exportSplitProof(c) {
+  const GAP=60, TOP_H=160, BOTTOM_H=80, TITLE_H=36;
+  const PANEL_W=1400, PANEL_H=800;
+  const PROOF_W=PANEL_W*3+GAP*2, PROOF_H=TOP_H+TITLE_H+PANEL_H+BOTTOM_H;
+  const proof=document.createElement('canvas'); proof.width=PROOF_W; proof.height=PROOF_H;
+  const pc=proof.getContext('2d'); pc.fillStyle='#fff'; pc.fillRect(0,0,PROOF_W,PROOF_H);
+  pc.fillStyle='#000'; pc.font='bold 28px Arial'; pc.textAlign='center'; pc.fillText(activePreset+' GUIDE', PROOF_W/2, 54);
+  pc.font='16px Arial'; pc.fillStyle='#555';
+  const fn=document.getElementById('fn').value.trim();
+  let lblStr='Canvas '+c.canvW+' × '+c.canvH+'mm (outer '+c.outerCanvW+' × '+c.outerCanvH+'mm) | Frame '+c.frameW+' × '+c.frameH+'mm | Travel '+c.travel+'mm each side';
+  if(c.tvW>0&&c.tvH>0) lblStr+=' | TV '+c.tvW+' × '+c.tvH+'mm | Aperture '+c.apertureThick+'mm';
+  lblStr+=' | Canvas profile '+CANVAS_FRAME+'mm';
+  pc.fillText(lblStr, PROOF_W/2, 84);
+  function renderSplitPanel(tVal, label) {
+    const off=document.createElement('canvas'); off.width=PANEL_W; off.height=PANEL_H;
+    const ctx=off.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,PANEL_W,PANEL_H);
+    const bar_mm=CANVAS_FRAME, hookTop=c.hookTop;
+    const apertureH_mm=c.apertureH>0?c.apertureH:c.frameH, apertureW_mm=c.apertureW>0?c.apertureW:200;
+    const plateW_mm=c.plateW, plateH_mm=c.plateH, t=tVal;
+    const gapBetweenPlates_mm=(c.travel+bar_mm)*2;
+    const leftPlateLeft_mm=0, leftPlateRight_mm=plateW_mm;
+    const rightPlateLeft_mm=leftPlateRight_mm+gapBetweenPlates_mm;
+    const rightPlateRight_mm=rightPlateLeft_mm+plateW_mm;
+    const apertureLeft_mm=leftPlateRight_mm+(gapBetweenPlates_mm-apertureW_mm)/2;
+    const plateToAperture=apertureLeft_mm-leftPlateRight_mm;
+    const leftFrameAt0_mm=leftPlateRight_mm-c.frameW;
+    const leftFrameLeft_mm=leftFrameAt0_mm+t*c.travel;
+    const leftCanvOffX_mm=c.frameW-c.outerCanvW+bar_mm;
+    const leftCanvLeft_mm=leftFrameLeft_mm+leftCanvOffX_mm;
+    const rightFrameAt0_mm=rightPlateLeft_mm;
+    const rightFrameLeft_mm=rightFrameAt0_mm-t*c.travel;
+    const rightCanvOffX_mm=-bar_mm;
+    const rightCanvLeft_mm=rightFrameLeft_mm+rightCanvOffX_mm;
+    const frameTop_mm=0;
+    const canvTopRel_mm=hookTop?-bar_mm:c.frameH-c.outerCanvH+bar_mm;
+    const canvTop_mm=frameTop_mm+canvTopRel_mm;
+    const canvCenterY_mm=canvTop_mm+c.outerCanvH/2;
+    const apertureTop_mm=canvCenterY_mm-apertureH_mm/2;
+    let plateTop_mm;
+    if(c.splitVMode==='bottom-extend'){const baseH=c.splitBaseFrameH||c.frameH;plateTop_mm=(baseH/2)-(plateH_mm/2);}
+    else{plateTop_mm=(c.frameH/2)-(plateH_mm/2);}
+    const tvLeft_mm=apertureLeft_mm+c.apertureThick, tvTop_mm=apertureTop_mm+c.apertureThick;
+    const leftCanvOpenLeft_mm=leftFrameAt0_mm+leftCanvOffX_mm;
+    const rightCanvOpenRight_mm=rightFrameAt0_mm+rightCanvOffX_mm+c.outerCanvW;
+    const fullLeft_mm=Math.min(leftCanvOpenLeft_mm,leftPlateLeft_mm);
+    const fullRight_mm=Math.max(rightCanvOpenRight_mm,rightPlateRight_mm);
+    const allTop=Math.min(plateTop_mm,canvTop_mm,apertureTop_mm,frameTop_mm);
+    const allBottom=Math.max(plateTop_mm+plateH_mm,canvTop_mm+c.outerCanvH,apertureTop_mm+apertureH_mm,frameTop_mm+c.frameH);
+    const DIM_L=60,DIM_R=60,DIM_T=80,DIM_B=70;
+    const SCALE=Math.min((PANEL_W-DIM_L-DIM_R-40)/(fullRight_mm-fullLeft_mm),(PANEL_H-DIM_T-DIM_B-40)/(allBottom-allTop));
+    function mm(v){return v*SCALE;}
+    const sceneW=(fullRight_mm-fullLeft_mm)*SCALE, sceneH=(allBottom-allTop)*SCALE;
+    const originX=DIM_L+(PANEL_W-DIM_L-DIM_R-sceneW)/2-mm(fullLeft_mm);
+    const originY=DIM_T+(PANEL_H-DIM_T-DIM_B-sceneH)/2-mm(allTop);
+    function xOf(x){return originX+mm(x);} function yOf(y){return originY+mm(y);}
+    if(c.tvW>0&&c.tvH>0){
+      const apX=xOf(apertureLeft_mm),apY=yOf(apertureTop_mm),apW=mm(apertureW_mm),apH=mm(apertureH_mm);
+      ctx.fillStyle='#fff';ctx.fillRect(apX,apY,apW,apH);
+      ctx.save();const r=new Path2D();r.rect(apX,apY,apW,apH);ctx.clip(r);ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=20;ctx.strokeStyle='#000';ctx.lineWidth=20;ctx.strokeRect(apX-10,apY-10,apW+20,apH+20);ctx.restore();ctx.strokeStyle='#f7f7f7';ctx.lineWidth=2;ctx.strokeRect(apX,apY,apW,apH);
+      const tvX=xOf(tvLeft_mm),tvY=yOf(tvTop_mm),tvWpx=mm(c.tvW),tvHpx=mm(c.tvH);
+      ctx.save();ctx.beginPath();ctx.roundRect(tvX,tvY,tvWpx,tvHpx,2);ctx.clip();ctx.fillStyle='#111';ctx.fillRect(tvX,tvY,tvWpx,tvHpx);ctx.strokeStyle='#222';ctx.lineWidth=8;ctx.strokeRect(tvX+4,tvY+4,tvWpx-8,tvHpx-8);ctx.restore();
+      const gg=ctx.createLinearGradient(tvX,tvY,tvX,tvY+tvHpx);gg.addColorStop(0,'rgba(255,255,255,0.06)');gg.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gg;ctx.fillRect(tvX,tvY,tvWpx,tvHpx);
+      ctx.font='600 11px Arial';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((c.tvW+'mm x '+c.tvH+'mm').toUpperCase(),tvX+tvWpx/2,tvY+tvHpx/2+4);
+    } else {
+      const apX=xOf(apertureLeft_mm),apY=yOf(apertureTop_mm),apW=mm(apertureW_mm),apH=mm(apertureH_mm);
+      ctx.fillStyle='#e8e8e8';ctx.fillRect(apX,apY,apW,apH);ctx.save();const r=new Path2D();r.rect(apX,apY,apW,apH);ctx.clip(r);ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=20;ctx.strokeStyle='#000';ctx.lineWidth=20;ctx.strokeRect(apX-10,apY-10,apW+20,apH+20);ctx.restore();ctx.strokeStyle='#ccc';ctx.lineWidth=2;ctx.strokeRect(apX,apY,apW,apH);
+    }
+    function drawPlate(px,py,pw,ph){ctx.save();ctx.beginPath();ctx.roundRect(px,py,pw,ph,mm(6));ctx.fillStyle='#2a2a2a';ctx.fill();ctx.strokeStyle='#444';ctx.lineWidth=1;ctx.stroke();ctx.restore();ctx.font='600 9px Arial';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((pw/SCALE+'x'+ph/SCALE+'mm').toUpperCase(),px+pw/2,py+ph/2+4);const cols=[px+mm(15),px+pw-mm(15)],cy=py+ph/2,sp=mm(75);for(let col of cols)for(let i=-4;i<=4;i++){const hy=cy+i*sp;if(hy>=py+mm(5)&&hy<=py+ph-mm(5)){ctx.save();ctx.beginPath();ctx.arc(col,hy,mm(4),0,Math.PI*2);ctx.fillStyle='#555';ctx.fill();ctx.restore();}}}
+    function drawMF(fx,fy2,fw2,fh2){const fs=mm(FRAME_STROKE);ctx.fillStyle='#b0b0b0';ctx.beginPath();ctx.rect(fx,fy2,fw2,fh2);ctx.rect(fx+fs,fy2+fs,fw2-fs*2,fh2-fs*2);ctx.fill('evenodd');ctx.strokeStyle='#888';ctx.lineWidth=1.5;ctx.strokeRect(fx,fy2,fw2,fh2);}
+    function drawCanv(cx2,cy2,cw,ch,isLeft,fx){
+      const bar=mm(bar_mm);
+      if(c.needsHorizBrace){const bY_mm=hookTop?frameTop_mm+c.frameH+2+bar_mm/2:frameTop_mm-2-bar_mm/2;const bYpx=yOf(bY_mm);const bL=isLeft?(c.needsVertBrace?fx:cx2+bar):cx2+bar;const bR=isLeft?(cx2+cw-bar):(c.needsVertBrace?fx+mm(c.frameW):cx2+cw-bar);ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(bL,bYpx-bar/2,bR-bL,bar);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(bL,bYpx-bar/2,bR-bL,bar);ctx.restore();}
+      if(c.needsVertBrace){const vx=isLeft?fx-bar:fx+mm(c.frameW);ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(vx,cy2+bar,bar,ch-bar*2);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(vx,cy2+bar,bar,ch-bar*2);ctx.restore();}
+      ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';ctx.fillRect(cx2,cy2,cw,bar);ctx.fillRect(cx2,cy2+ch-bar,cw,bar);ctx.fillRect(cx2,cy2+bar,bar,ch-bar*2);ctx.fillRect(cx2+cw-bar,cy2+bar,bar,ch-bar*2);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(cx2,cy2,cw,ch);ctx.restore();
+    }
+    const plateY=yOf(plateTop_mm),pWpx=mm(plateW_mm),pHpx=mm(plateH_mm);
+    drawPlate(xOf(leftPlateLeft_mm),plateY,pWpx,pHpx);drawPlate(xOf(rightPlateLeft_mm),plateY,pWpx,pHpx);
+    const fWpx=mm(c.frameW),fHpx=mm(c.frameH);
+    const leftFX=xOf(leftFrameLeft_mm),rightFX=xOf(rightFrameLeft_mm),frameY=yOf(frameTop_mm);
+    drawMF(leftFX,frameY,fWpx,fHpx);drawMF(rightFX,frameY,fWpx,fHpx);
+    const leftCX=xOf(leftCanvLeft_mm),rightCX=xOf(rightCanvLeft_mm);
+    const oCW=mm(c.outerCanvW),oCH=mm(c.outerCanvH),canvY=yOf(canvTop_mm);
+    drawCanv(leftCX,canvY,oCW,oCH,true,leftFX);drawCanv(rightCX,canvY,oCW,oCH,false,rightFX);
+    const dimTopY=Math.min(canvY,yOf(apertureTop_mm))-36;
+    const totalW_mm=Math.round(rightCanvOpenRight_mm-leftCanvOpenLeft_mm);
+    dimArrow(ctx,xOf(leftCanvOpenLeft_mm),dimTopY,xOf(rightCanvOpenRight_mm),dimTopY,(totalW_mm+'mm total mechanism').toUpperCase(),'#000','#000','h');
+    const dimTopY2=dimTopY-28;
+    dimArrow(ctx,xOf(leftPlateRight_mm),dimTopY2,xOf(rightPlateLeft_mm),dimTopY2,(Math.round(gapBetweenPlates_mm)+'mm between plates').toUpperCase(),'#555','#555','h');
+    if(t>0.01){const tY=dimTopY2-28;dimArrow(ctx,xOf(leftFrameAt0_mm),tY,xOf(leftFrameAt0_mm+t*c.travel),tY,('travel '+Math.round(t*c.travel)+'mm each').toUpperCase(),'#cc3333','#cc3333','h');}
+    const dimBotY=Math.max(canvY+oCH,yOf(frameTop_mm+c.frameH))+22;
+    drawBrokenDimH(ctx,xOf(leftCanvLeft_mm),dimBotY,xOf(leftCanvLeft_mm)+oCW,dimBotY,c.canvW+'mm canvas (inner)','#777',1.8);
+    drawBrokenDimH(ctx,xOf(rightCanvLeft_mm),dimBotY,xOf(rightCanvLeft_mm)+oCW,dimBotY,c.canvW+'mm canvas (inner)','#777',1.8);
+    drawBrokenDimV(ctx,xOf(leftFrameLeft_mm)-14,yOf(frameTop_mm),xOf(leftFrameLeft_mm)-14,yOf(frameTop_mm)+fHpx,c.canvH+'mm canvas (inner)','#777',1.8);
+    if(t<0.01){const gL=leftFrameAt0_mm+leftCanvOffX_mm+c.outerCanvW,gR=rightFrameAt0_mm+rightCanvOffX_mm;dimArrow(ctx,xOf(gL),dimBotY+28,xOf(gR),dimBotY+28,(Math.round(gR-gL)+'mm open gap').toUpperCase(),'#555','#555','h');}
+    if(c.tvW>0&&c.tvH>0){
+      const apX=xOf(apertureLeft_mm),apY=yOf(apertureTop_mm),apW=mm(apertureW_mm),apH=mm(apertureH_mm),apMidX=apX+apW/2;
+      dimArrow(ctx,apX-28,apY,apX-28,apY+apH,(Math.round(apertureH_mm)+'mm aperture').toUpperCase(),'#000','#000','v');
+      dimArrow(ctx,apX,apY-20,apX+apW,apY-20,(Math.round(apertureW_mm)+'mm aperture').toUpperCase(),'#000','#000','h');
+      const pMidY=plateY+pHpx/2;
+      dimArrow(ctx,xOf(leftPlateRight_mm),pMidY,apX,pMidY,Math.round(plateToAperture)+'mm','#aaa','#aaa','h');
+      dimArrow(ctx,apX+apW,pMidY,xOf(rightPlateLeft_mm),pMidY,Math.round(plateToAperture)+'mm','#aaa','#aaa','h');
+    }
+    ctx.font='bold 18px Arial';ctx.fillStyle='#000';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(label.toUpperCase(),PANEL_W/2,8);
+    return off;
+  }
+  function renderCanvasPanel() {
+    const off=document.createElement('canvas');off.width=PANEL_W;off.height=PANEL_H;
+    const ctx=off.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,PANEL_W,PANEL_H);
+    const bar_mm=CANVAS_FRAME,CANV_GAP_mm=60;
+    const totalW_mm=c.outerCanvW*2+CANV_GAP_mm,DIM_PAD=100;
+    const SCALE=Math.min((PANEL_W-DIM_PAD*2)/totalW_mm,(PANEL_H-DIM_PAD*2)/c.outerCanvH);
+    function mm(v){return v*SCALE;}
+    const startX=PANEL_W/2-mm(totalW_mm)/2,originY=PANEL_H/2-mm(c.outerCanvH)/2;
+    const leftOX=startX,rightOX=startX+mm(c.outerCanvW)+mm(CANV_GAP_mm);
+    const bar=mm(bar_mm),outerCW=mm(c.outerCanvW),outerCH=mm(c.outerCanvH);
+    const hookTop=c.hookTop,frameTop_mm=0;
+    function drawCanvDetail(ox,isLeft){
+      ctx.save();ctx.globalAlpha=0.9;ctx.fillStyle='#c8a050';
+      ctx.fillRect(ox,originY,outerCW,bar);ctx.fillRect(ox,originY+outerCH-bar,outerCW,bar);
+      ctx.fillRect(ox,originY+bar,bar,outerCH-bar*2);ctx.fillRect(ox+outerCW-bar,originY+bar,bar,outerCH-bar*2);
+      ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(ox,originY,outerCW,outerCH);
+      if(c.needsHorizBrace){
+        const bY_mm=hookTop?frameTop_mm+c.frameH+2+bar_mm/2:frameTop_mm-2-bar_mm/2;
+        const canvTopRel_mm2=hookTop?-bar_mm:c.frameH-c.outerCanvH+bar_mm;
+        const bYpx=originY+mm(bY_mm-canvTopRel_mm2);
+        const frameX_inCanv=isLeft?ox+outerCW-bar-mm(c.frameW):ox+mm(c.frameW);
+        const bL=isLeft?(c.needsVertBrace?frameX_inCanv:ox+bar):ox+bar;
+        const bR=isLeft?(ox+outerCW-bar):(c.needsVertBrace?frameX_inCanv+bar:ox+outerCW-bar);
+        ctx.fillStyle='#c8a050';ctx.fillRect(bL,bYpx-bar/2,bR-bL,bar);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(bL,bYpx-bar/2,bR-bL,bar);
+      }
+      if(c.needsVertBrace){
+        const frameX_inCanv=isLeft?ox+outerCW-bar-mm(c.frameW):ox+mm(c.frameW);
+        const vertBraceX=isLeft?frameX_inCanv-bar:frameX_inCanv;
+        ctx.fillStyle='#c8a050';ctx.fillRect(vertBraceX,originY+bar,bar,outerCH-bar*2);ctx.strokeStyle='#a07030';ctx.lineWidth=1;ctx.strokeRect(vertBraceX,originY+bar,bar,outerCH-bar*2);
+      }
+      ctx.restore();
+    }
+    drawCanvDetail(leftOX,true);drawCanvDetail(rightOX,false);
+    const canvTopRel_mm=hookTop?-bar_mm:c.frameH-c.outerCanvH+bar_mm;
+    const frameX_left=leftOX+outerCW-bar-mm(c.frameW);
+    if(c.needsHorizBrace){
+      const bY_mm=hookTop?c.frameH+2+bar_mm/2:-2-bar_mm/2;
+      const bYpx=originY+mm(bY_mm-canvTopRel_mm);
+      const edgeY_mm=hookTop?c.frameH+2:-2;
+      const edgeYpx=originY+mm(edgeY_mm-canvTopRel_mm);
+      const frameTopInCanv=originY+mm(-canvTopRel_mm);
+      const frameBottomInCanv=originY+mm(c.frameH-canvTopRel_mm);
+      if(hookTop){dimArrow(ctx,frameX_left-20,edgeYpx,frameX_left-20,frameTopInCanv,((c.frameH+2)+'mm').toUpperCase(),'#000','#000','v');}
+      else{dimArrow(ctx,frameX_left-20,frameBottomInCanv,frameX_left-20,edgeYpx,((c.frameH+2)+'mm').toUpperCase(),'#000','#000','v');}
+    }
+    if(c.needsVertBrace){const vertBraceLeftX=frameX_left-bar;dimArrow(ctx,leftOX,originY+outerCH+20,vertBraceLeftX+bar,originY+outerCH+20,(Math.round(c.outerCanvW-c.frameW-bar_mm)+'mm').toUpperCase(),'#000','#000','h');}
+    dimArrow(ctx,leftOX,originY-28,leftOX+outerCW,originY-28,(c.outerCanvW+'mm outer').toUpperCase(),'#000','#000','h');
+    dimArrow(ctx,leftOX+outerCW+28,originY,leftOX+outerCW+28,originY+outerCH,(c.outerCanvH+'mm outer').toUpperCase(),'#000','#000','v');
+    dimArrow(ctx,leftOX+bar,originY+bar-20,leftOX+outerCW-bar,originY+bar-20,(c.canvW+'mm inner').toUpperCase(),'#555','#555','h');
+    dimArrow(ctx,leftOX+bar-28,originY+bar,leftOX+bar-28,originY+outerCH-bar,(c.canvH+'mm inner').toUpperCase(),'#555','#555','v');
+    dimArrow(ctx,leftOX,originY+outerCH/2,leftOX+bar,originY+outerCH/2,(bar_mm+'mm').toUpperCase(),'#888','#888','h');
+    dimArrow(ctx,rightOX,originY-28,rightOX+outerCW,originY-28,(c.outerCanvW+'mm outer').toUpperCase(),'#000','#000','h');
+    ctx.font='bold 18px Arial';ctx.fillStyle='#000';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('CANVAS DETAILS',PANEL_W/2,8);
+    return off;
+  }
+  const openPanel=renderSplitPanel(0,'OPEN POSITION');
+  const closedPanel=renderSplitPanel(1,'CLOSED POSITION');
+  const canvasPanel=renderCanvasPanel();
+  const startX=(PROOF_W-(PANEL_W*3+GAP*2))/2, panelY=TOP_H+TITLE_H;
+  pc.font='bold 22px Arial';pc.fillStyle='#000';pc.textAlign='center';
+  pc.fillText('OPEN POSITION',startX+PANEL_W/2,TOP_H+TITLE_H-10);
+  pc.fillText('CLOSED POSITION',startX+PANEL_W+GAP+PANEL_W/2,TOP_H+TITLE_H-10);
+  pc.fillText('CANVAS DETAILS',startX+(PANEL_W+GAP)*2+PANEL_W/2,TOP_H+TITLE_H-10);
+  pc.drawImage(openPanel,startX,panelY,PANEL_W,PANEL_H);
+  pc.drawImage(closedPanel,startX+PANEL_W+GAP,panelY,PANEL_W,PANEL_H);
+  pc.drawImage(canvasPanel,startX+(PANEL_W+GAP)*2,panelY,PANEL_W,PANEL_H);
+  pc.font='13px Arial';pc.fillStyle='#888';pc.textAlign='center';pc.fillText('PIC Canvas Tool — Future Automation',PROOF_W/2,panelY+PANEL_H+40);
+  const dlFn=fn?fn+' - '+activePreset+' GUIDE.jpg':activePreset+' GUIDE.jpg';
+  const a=document.createElement('a');a.href=proof.toDataURL('image/jpeg',0.93);a.download=dlFn;document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function exportSideProof(c){ const a=document.createElement('a'); a.href='#'; a.download=activePreset+' GUIDE.jpg'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+
+function getDims(){
+  const cW=getNum('canvW'), cH=getNum('canvH'), sideWrap=getNum('canvFrame'), backWrap=getNum('backWrap'), bleed=getNum('bleed');
+  const imgZone=sideWrap+backWrap, totalW=cW+(imgZone+bleed)*2, totalH=cH+(imgZone+bleed)*2;
+  const imgAreaX=bleed, imgAreaY=bleed, imgAreaW=cW+imgZone*2, imgAreaH=cH+imgZone*2;
+  const faceX=bleed+imgZone, faceY=bleed+imgZone;
+  const outerCanvW=cW+sideWrap*2, outerCanvH=cH+sideWrap*2;
+  return{cW,cH,sideWrap,backWrap,bleed,imgZone,totalW,totalH,imgAreaX,imgAreaY,imgAreaW,imgAreaH,faceX,faceY,outerCanvW,outerCanvH};
+}
+
+function getSplitDraw(d,side){
+  if(!upImg)return null;
+  const fullAreaW=(d.cW*2)+(d.imgZone*2), fullAreaH=d.cH+(d.imgZone*2);
+  const scl=Math.max(fullAreaW/upImg.width,fullAreaH/upImg.height);
+  const sW=upImg.width*scl, sH=upImg.height*scl;
+  const centerX=fullAreaW/2+imgXOffset, centerY=fullAreaH/2+imgYOffset;
+  const leftBoundary=centerX-sW/2, topBoundary=centerY-sH/2;
+  const sideCorrection=side==='right'?d.cW:0;
+  return{x:(d.imgAreaX+leftBoundary)-sideCorrection,y:d.imgAreaY+topBoundary,w:sW,h:sH};
+}
+
+function drawOneCanvas(cnv,d,side){
+  const halfW=container.clientWidth/2;
+  const scale=(isSplit?halfW:container.clientWidth)/d.totalW;
+  cnv.width=Math.round(d.totalW*scale); cnv.height=Math.round(d.totalH*scale);
+  const ctx=cnv.getContext('2d');
+  ctx.clearRect(0,0,cnv.width,cnv.height); ctx.save(); ctx.scale(scale,scale);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,d.totalW,d.totalH);
+  ctx.fillStyle='#d8d8d8'; ctx.fillRect(d.imgAreaX,d.imgAreaY,d.imgAreaW,d.imgAreaH);
+  if(upImg){
+    ctx.save(); ctx.beginPath(); ctx.rect(d.imgAreaX,d.imgAreaY,d.imgAreaW,d.imgAreaH); ctx.clip();
+    if(side){const p=getSplitDraw(d,side);if(p)ctx.drawImage(upImg,p.x,p.y,p.w,p.h);}
+    else{const scl=Math.max(d.imgAreaW/upImg.width,d.imgAreaH/upImg.height);const sW=upImg.width*scl,sH=upImg.height*scl;ctx.drawImage(upImg,d.imgAreaX+(d.imgAreaW-sW)/2+imgXOffset,d.imgAreaY+(d.imgAreaH-sH)/2+imgYOffset,sW,sH);}
+    ctx.restore();
+  }
+  ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.lineWidth=0.5; ctx.setLineDash([3,3]);
+  const bwX=d.bleed+d.backWrap; ctx.strokeRect(bwX,bwX,d.totalW-bwX*2,d.totalH-bwX*2);
+  ctx.strokeStyle='rgba(0,0,0,0.9)'; ctx.lineWidth=0.7; ctx.setLineDash([]);
+  ctx.strokeRect(d.faceX,d.faceY,d.cW,d.cH);
+  const guideLen=getNum('guideLen'); ctx.fillStyle='#000'; ctx.setLineDash([]);
+  ctx.fillRect(d.totalW/2-0.25,0,0.5,guideLen); ctx.fillRect(d.totalW/2-0.25,d.totalH-guideLen,0.5,guideLen);
+  ctx.fillRect(0,d.totalH/2-0.25,guideLen,0.5); ctx.fillRect(d.totalW-guideLen,d.totalH/2-0.25,guideLen,0.5);
+  ctx.restore();
+}
+
+function drawCnv(){
+  const d=getDims();
+  if(isSplit){drawOneCanvas(cnvLeft,d,'left');drawOneCanvas(cnvRight,d,'right');}
+  else{drawOneCanvas(cnvLeft,d,null);}
+  updateArrows();
+}
+
+function setupSplitLayout(){
+  container.innerHTML='';
+  const wrapper=document.createElement('div'); wrapper.className='split-canvas-wrapper';
+  ['left','right'].forEach(side=>{
+    const half=document.createElement('div'); half.className='canvas-half';
+    const lbl2=document.createElement('div'); lbl2.className='split-label'; lbl2.textContent=side==='left'?'LEFT CANVAS':'RIGHT CANVAS';
+    const cnv=document.createElement('canvas'); cnv.className='has-image';
+    half.appendChild(lbl2); half.appendChild(cnv); wrapper.appendChild(half);
+    if(side==='left')cnvLeft=cnv; else cnvRight=cnv;
+  });
+  container.appendChild(wrapper);
+  attachDrag(cnvLeft,'left'); attachDrag(cnvRight,'right');
+}
+
+function setupSingleLayout(){
+  container.innerHTML='';
+  const cnv=document.createElement('canvas'); cnv.id='cnvSingle'; container.appendChild(cnv);
+  cnvLeft=cnv; cnvRight=null; attachDrag(cnvLeft,null);
+}
+
+function canvasCoords(e,cnv,d){
+  const rect=cnv.getBoundingClientRect(), src=e.touches?e.touches[0]:e;
+  return{x:(src.clientX-rect.left)*(d.totalW/rect.width),y:(src.clientY-rect.top)*(d.totalH/rect.height)};
+}
+
+function clampOffset(d,side){
+  if(!upImg)return;
+  if(side){const faW=(d.cW*2)+(d.imgZone*2),faH=d.cH+(d.imgZone*2);const scl=Math.max(faW/upImg.width,faH/upImg.height);const sW=upImg.width*scl,sH=upImg.height*scl;const maxX=(sW-faW)/2,maxY=(sH-faH)/2;imgXOffset=Math.max(-maxX,Math.min(maxX,imgXOffset));imgYOffset=Math.max(-maxY,Math.min(maxY,imgYOffset));}
+  else{const scl=Math.max(d.imgAreaW/upImg.width,d.imgAreaH/upImg.height);const sW=upImg.width*scl,sH=upImg.height*scl;imgXOffset=Math.max(-(sW-d.imgAreaW)/2,Math.min((sW-d.imgAreaW)/2,imgXOffset));imgYOffset=Math.max(-(sH-d.imgAreaH)/2,Math.min((sH-d.imgAreaH)/2,imgYOffset));}
+}
+
+function attachDrag(cnv,side){
+  function onStart(e){if(!upImg)return;if(e.touches)e.preventDefault();isDragging=true;activeDragCnv=cnv;const d=getDims();const p=canvasCoords(e,cnv,d);dragStartX=p.x-imgXOffset;dragStartY=p.y-imgYOffset;cnv.classList.add('dragging');}
+  function onMove(e){if(!isDragging||activeDragCnv!==cnv||!upImg)return;if(e.touches)e.preventDefault();const d=getDims();const p=canvasCoords(e,cnv,d);imgXOffset=p.x-dragStartX;imgYOffset=p.y-dragStartY;clampOffset(d,side);drawCnv();draw();}
+  function onEnd(){isDragging=false;activeDragCnv=null;cnv.classList.remove('dragging');}
+  cnv.addEventListener('mousedown',onStart); cnv.addEventListener('mousemove',onMove); cnv.addEventListener('mouseup',onEnd); cnv.addEventListener('mouseleave',onEnd);
+  cnv.addEventListener('touchstart',onStart,{passive:false}); cnv.addEventListener('touchmove',onMove,{passive:false}); cnv.addEventListener('touchend',onEnd); cnv.addEventListener('touchcancel',onEnd);
+}
+
+function updateArrows(){
+  const ids=['leftArrow','rightArrow','upArrow','downArrow'];
+  if(!upImg){ids.forEach(id=>document.getElementById(id).disabled=true);return;}
+  const d=getDims(); let maxX,maxY;
+  if(isSplit){const faW=(d.cW*2)+(d.imgZone*2),faH=d.cH+(d.imgZone*2);const scl=Math.max(faW/upImg.width,faH/upImg.height);maxX=(upImg.width*scl-faW)/2;maxY=(upImg.height*scl-faH)/2;}
+  else{const scl=Math.max(d.imgAreaW/upImg.width,d.imgAreaH/upImg.height);maxX=(upImg.width*scl-d.imgAreaW)/2;maxY=(upImg.height*scl-d.imgAreaH)/2;}
+  document.getElementById('leftArrow').disabled=imgXOffset<=-maxX; document.getElementById('rightArrow').disabled=imgXOffset>=maxX;
+  document.getElementById('upArrow').disabled=imgYOffset<=-maxY; document.getElementById('downArrow').disabled=imgYOffset>=maxY;
+}
+
+function shiftImage(dir){if(!upImg)return;const d=getDims(),amt=2;if(dir==='left')imgXOffset-=amt;if(dir==='right')imgXOffset+=amt;if(dir==='up')imgYOffset-=amt;if(dir==='down')imgYOffset+=amt;clampOffset(d,isSplit?'left':null);drawCnv();}
+function startMoving(dir){if(!intervalId)intervalId=setInterval(()=>shiftImage(dir),80);}
+function stopMoving(){clearInterval(intervalId);intervalId=null;}
+
+['leftArrow','rightArrow','upArrow','downArrow'].forEach(id=>{
+  const btn=document.getElementById(id), dir=id.replace('Arrow','');
+  btn.addEventListener('click',()=>shiftImage(dir));
+  btn.addEventListener('mousedown',()=>startMoving(dir));
+  btn.addEventListener('mouseup',stopMoving); btn.addEventListener('mouseleave',stopMoving);
+});
+
+
+
+function setArtworkToggle(on){
+  showArtwork=on;
+  const btn=document.getElementById('artworkToggleBtn');
+  btn.disabled=false; btn.style.opacity=''; btn.style.cursor='';
+  if(on){btn.innerHTML='<i class="fas fa-eye"></i> Artwork On';btn.classList.remove('off');}
+  else{btn.innerHTML='<i class="fas fa-eye-slash"></i> Artwork Off';btn.classList.add('off');}
+}
+function disableArtworkToggle(){
+  showArtwork=false;
+  const btn=document.getElementById('artworkToggleBtn');
+  btn.disabled=true; btn.style.opacity='0.35'; btn.style.cursor='not-allowed';
+  btn.innerHTML='<i class="fas fa-eye-slash"></i> Artwork Off'; btn.classList.add('off');
+}
+document.getElementById('artworkToggleBtn').addEventListener('click',()=>{
+  if(!upImg)return;
+  showArtwork=!showArtwork;
+  const btn=document.getElementById('artworkToggleBtn');
+  if(showArtwork){btn.innerHTML='<i class="fas fa-eye"></i> Artwork On';btn.classList.remove('off');}
+  else{btn.innerHTML='<i class="fas fa-eye-slash"></i> Artwork Off';btn.classList.add('off');}
+  draw();
+});
+
+function updateDpiNote(){
+  const note=document.getElementById('dpiNote');
+  const cW=getNum('canvW'), fH3=getNum('canvH');
+  const sideWrap=getNum('canvFrame');
+  const imgAreaW=cW+((sideWrap+15)*2), imgAreaH=fH3+((sideWrap+15)*2);
+  const reqW=Math.round(imgAreaW/25.4*150), reqH=Math.round(imgAreaH/25.4*150);
+  if(upImg){
+    const scl=Math.max(imgAreaW/upImg.width,imgAreaH/upImg.height);
+    const sWmm=upImg.width*scl, sHmm=upImg.height*scl;
+    const dpiW=upImg.width/(Math.min(sWmm,imgAreaW)/25.4), dpiH=upImg.height/(Math.min(sHmm,imgAreaH)/25.4);
+    const minDpi=Math.min(dpiW,dpiH), pass=minDpi>=150;
+    note.style.color=pass?'#27ae60':'#c0392b';
+    note.textContent=`${upImg.width}×${upImg.height}px | ${Math.round(minDpi)}dpi ${pass?'✓':'⚠ below 150dpi'}`;
+  } else {
+    note.style.color=var_muted;
+    note.textContent=`Min size: ${reqW}×${reqH}px`;
+  }
+}
+const var_muted = '#888';
+
+document.getElementById('upBtn').addEventListener('click',()=>document.getElementById('imgLdr').click());
+document.getElementById('imgLdr').addEventListener('change',e=>{
+  const loader=document.getElementById('loader'); loader.style.display='block';
+  const rdr=new FileReader();
+  rdr.onload=ev=>{upImg=new Image();upImg.onload=()=>{imgXOffset=0;imgYOffset=0;loader.style.display='none';if(isSplit){cnvLeft.classList.add('has-image');if(cnvRight)cnvRight.classList.add('has-image');}else{cnvLeft.classList.add('has-image');}setArtworkToggle(true);drawCnv();draw();updateDpiNote();};upImg.src=ev.target.result;};
+  rdr.readAsDataURL(e.target.files[0]);
+});
+document.getElementById('rmvBtn').addEventListener('click',()=>{
+  upImg=null;imgXOffset=0;imgYOffset=0;document.getElementById('loader').style.display='none';
+  document.getElementById('urlStatus').textContent='';
+  if(isSplit){cnvLeft.classList.remove('has-image');if(cnvRight)cnvRight.classList.remove('has-image');}else{cnvLeft.classList.remove('has-image');}
+  disableArtworkToggle();
+  drawCnv();draw();updateDpiNote();
+});
+
+document.getElementById('fetchUrlBtn').addEventListener('click',async()=>{
+  const raw=document.getElementById('imgUrl').value.trim();
+  const statusEl=document.getElementById('urlStatus');
+  const loader=document.getElementById('loader');
+  if(!raw)return;
+  statusEl.style.color='#888'; statusEl.textContent='Fetching page...';
+  try{
+    const proxyUrl='https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(raw);
+    const res=await fetch(proxyUrl,{headers:{'Accept':'text/html'}});
+    if(!res.ok)throw new Error('Page fetch failed ('+res.status+')');
+    const html=await res.text();
+    const canvasM=html.match(/class="canvas"[\s\S]{0,400}<img[^>]+src="([^"]+)"/);
+    let imgSrc=canvasM?canvasM[1].trim():null;
+    if(!imgSrc){const m=html.match(/src="(https?:\/\/cdn\.felixr\.com\/photos\/[^"]+)"/);if(m)imgSrc=m[1];}
+    if(!imgSrc)throw new Error('No artwork image found on page');
+    imgSrc=imgSrc.replace(/\/photos\/[^/]+\//,'/photos/500/');
+    statusEl.textContent='Loading image...'; loader.style.display='block';
+    const proxiedImg='https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(imgSrc);
+    const newImg=new Image(); newImg.crossOrigin='anonymous';
+    newImg.onload=()=>{upImg=newImg;imgXOffset=0;imgYOffset=0;loader.style.display='none';statusEl.style.color='#27ae60';statusEl.textContent='Image loaded';if(!isSplit)cnvLeft.classList.add('has-image');setArtworkToggle(true);drawCnv();draw();updateDpiNote();};
+    newImg.onerror=()=>{loader.style.display='none';statusEl.style.color='#c00';statusEl.textContent='Could not load image';};
+    newImg.src=proxiedImg;
+  }catch(err){loader.style.display='none';statusEl.style.color='#c00';statusEl.textContent=err.message||'Failed to fetch image';}
+});
+document.getElementById('imgUrl').addEventListener('input',()=>{if(!document.getElementById('imgUrl').value.trim())document.getElementById('urlStatus').textContent='';});
+
+document.getElementById('jpgBtn').addEventListener('click',()=>{
+  const d=getDims(); const fn=document.getElementById('fn').value.trim();
+  if(isSplit)generateSplitProof(d,fn); else generateSingleProof(d,fn);
+});
+
+document.getElementById('pdfBtn').addEventListener('click',()=>{
+  const d=getDims(); const fn=document.getElementById('fn').value.trim()||''; const PT=72/25.4;
+  function buildPdf(side){
+    const pdf=new jsPDF({orientation:d.totalW>=d.totalH?'landscape':'portrait',unit:'pt',format:[d.totalW*PT,d.totalH*PT]});
+    pdf.setFillColor(255,255,255); pdf.rect(0,0,d.totalW*PT,d.totalH*PT,'F');
+    if(upImg){
+      const tmp=document.createElement('canvas');tmp.width=upImg.width;tmp.height=upImg.height;tmp.getContext('2d').drawImage(upImg,0,0);const dataUrl=tmp.toDataURL('image/jpeg',1.0);
+      const drawP=side?getSplitDraw(d,side):{x:d.imgAreaX+(d.imgAreaW-(upImg.width*Math.max(d.imgAreaW/upImg.width,d.imgAreaH/upImg.height)))/2+imgXOffset,y:d.imgAreaY+(d.imgAreaH-(upImg.height*Math.max(d.imgAreaW/upImg.width,d.imgAreaH/upImg.height)))/2+imgYOffset,w:upImg.width*Math.max(d.imgAreaW/upImg.width,d.imgAreaH/upImg.height),h:upImg.height*Math.max(d.imgAreaW/upImg.width,d.imgAreaH/upImg.height)};
+      pdf.addImage(dataUrl,'JPEG',drawP.x*PT,drawP.y*PT,drawP.w*PT,drawP.h*PT);
+    }
+    pdf.setFillColor(255,255,255);pdf.rect(0,0,d.totalW*PT,d.bleed*PT,'F');pdf.rect(0,(d.totalH-d.bleed)*PT,d.totalW*PT,d.bleed*PT,'F');pdf.rect(0,d.bleed*PT,d.bleed*PT,(d.totalH-d.bleed*2)*PT,'F');pdf.rect((d.totalW-d.bleed)*PT,d.bleed*PT,d.bleed*PT,(d.totalH-d.bleed*2)*PT,'F');
+    const gL=getNum('guideLen')*PT,gT=0.5*PT;pdf.setFillColor(0,0,0);pdf.rect(d.totalW*PT/2-gT/2,0,gT,gL,'F');pdf.rect(d.totalW*PT/2-gT/2,d.totalH*PT-gL,gT,gL,'F');pdf.rect(0,d.totalH*PT/2-gT/2,gL,gT,'F');pdf.rect(d.totalW*PT-gL,d.totalH*PT/2-gT/2,gL,gT,'F');
+    const iW=d.cW-d.sideWrap*2,iH=d.cH-d.sideWrap*2,sideLabel=side?` | ${side.toUpperCase()} CANVAS`:'';
+    pdf.setFontSize(12);pdf.setTextColor(0,0,0);
+    const titlePart=fn?fn:(selectedPresetName||'');
+    const specLabel=`Template Height: ${fmt(d.totalH)}mm  |  Template Width: ${fmt(d.totalW)}mm  |  Finished Canvas Height: ${fmt(d.cH)}mm  |  Finished Canvas Width: ${fmt(d.cW)}mm  |  Frame: ${fmt(d.sideWrap)}mm  |  Internal Frame Width: ${fmt(iW)}mm  |  Internal Frame Height: ${fmt(iH)}mm`;
+    const labelLine=titlePart?`${titlePart}${sideLabel}  |  ${specLabel}`:`${sideLabel?sideLabel.replace(' | ','')+' | ':''}${specLabel}`;
+    pdf.text(labelLine,(d.bleed+3)*PT,(d.totalH-d.bleed+10)*PT);
+    return pdf;
+  }
+  const saveName=fn||selectedPresetName||'canvas';
+  if(isSplit){buildPdf('left').save(`${saveName} - LEFT CANVAS.pdf`);setTimeout(()=>buildPdf('right').save(`${saveName} - RIGHT CANVAS.pdf`),400);}else{buildPdf(null).save(`${saveName}.pdf`);}
+});
+
+function drawMeasurement(ctx,x1,y1,x2,y2,label,type,textPos){
+  ctx.save();ctx.strokeStyle='#333';ctx.fillStyle='#333';ctx.lineWidth=1;ctx.font='15px Arial, sans-serif';const tk=5;
+  if(type==='h'||type==='iso_h'){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2||y1);ctx.stroke();ctx.beginPath();ctx.moveTo(x1,y1-tk);ctx.lineTo(x1,y1+tk);ctx.stroke();ctx.beginPath();ctx.moveTo(x2,(y2||y1)-tk);ctx.lineTo(x2,(y2||y1)+tk);ctx.stroke();if(textPos==='below'){ctx.textAlign='center';ctx.fillText(label,(x1+x2)/2,(y1+(y2||y1))/2+18);}else if(textPos==='above_left'){ctx.textAlign='right';ctx.fillText(label,x1-4,y1+5);}else if(textPos==='above_iso'){ctx.textAlign='center';ctx.fillText(label,(x1+x2)/2,(y1+y2)/2-12);}else{ctx.textAlign='center';ctx.fillText(label,(x1+x2)/2,(y1+(y2||y1))/2-8);}}
+  else{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2||x1,y2);ctx.stroke();ctx.beginPath();ctx.moveTo(x1-tk,y1);ctx.lineTo(x1+tk,y1);ctx.stroke();ctx.beginPath();ctx.moveTo((x2||x1)-tk,y2);ctx.lineTo((x2||x1)+tk,y2);ctx.stroke();if(textPos==='right'){ctx.textAlign='left';ctx.fillText(label,(x1+(x2||x1))/2+8,(y1+y2)/2+5);}else{ctx.save();ctx.translate((x1+(x2||x1))/2-12,(y1+y2)/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText(label,0,0);ctx.restore();}}
+  ctx.restore();
+}
+
+function drawQuadImage(ctx,pts,img){
+  const[tl,tr,br,bl]=pts,w=img.width,h=img.height;
+  function drawTri(p0,p1,p2,uv0,uv1,uv2){const denom=uv0[0]*(uv1[1]-uv2[1])+uv1[0]*(uv2[1]-uv0[1])+uv2[0]*(uv0[1]-uv1[1]);if(Math.abs(denom)<0.0001)return;const a=((p0[0]-p2[0])*(uv1[1]-uv2[1])-(p1[0]-p2[0])*(uv0[1]-uv2[1]))/denom;const b=((p0[1]-p2[1])*(uv1[1]-uv2[1])-(p1[1]-p2[1])*(uv0[1]-uv2[1]))/denom;const c=((p1[0]-p2[0])*(uv0[0]-uv2[0])-(p0[0]-p2[0])*(uv1[0]-uv2[0]))/denom;const ff=((p1[1]-p2[1])*(uv0[0]-uv2[0])-(p0[1]-p2[1])*(uv1[0]-uv2[0]))/denom;const e=p2[0]-a*uv2[0]-c*uv2[1];const g2=p2[1]-b*uv2[0]-ff*uv2[1];ctx.save();ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.lineTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);ctx.closePath();ctx.clip();ctx.transform(a,b,c,ff,e,g2);ctx.drawImage(img,0,0,w,h);ctx.restore();}
+  drawTri(tl,tr,bl,[0,0],[w,0],[0,h]);drawTri(tr,br,bl,[w,0],[w,h],[0,h]);
+}
+
+function getImgCanvas(d,regionX,regionY,regionW,regionH,flipH,outW,outH,splitSide){
+  outW=Math.max(1,Math.round(outW||regionW));outH=Math.max(1,Math.round(outH||regionH));
+  const off=document.createElement('canvas');off.width=outW;off.height=outH;
+  const oc=off.getContext('2d');
+  if(!upImg){oc.fillStyle='#c8c8c8';oc.fillRect(0,0,outW,outH);return off;}
+  let drawP;
+  if(splitSide){drawP=getSplitDraw(d,splitSide);}
+  else{const scl=Math.max(d.imgAreaW/upImg.width,d.imgAreaH/upImg.height);const sW=upImg.width*scl,sH=upImg.height*scl;drawP={x:d.imgAreaX+(d.imgAreaW-sW)/2+imgXOffset,y:d.imgAreaY+(d.imgAreaH-sH)/2+imgYOffset,w:sW,h:sH};}
+  const rx=outW/regionW,ry=outH/regionH;
+  const dx=(drawP.x-regionX)*rx,dy=(drawP.y-regionY)*ry;
+  const dw=drawP.w*rx,dh=drawP.h*ry;
+  oc.save();if(flipH){oc.translate(outW,0);oc.scale(-1,1);}
+  oc.drawImage(upImg,flipH?-(dx+dw)+outW:dx,dy,dw,dh);oc.restore();
+  return off;
+}
+
+function drawIsoCanvas(pc,ox,oy,d,fw,fh,sw,th,woodColor,woodDark,woodLight,splitSide,showDepth){
+  const topTL=[ox,oy],topTR=[ox+fw,oy],topBR=[ox+fw+sw,oy-th],topBL=[ox+sw,oy-th];
+  const sideTL=[ox+fw,oy],sideTR=[ox+fw+sw,oy-th],sideBR=[ox+fw+sw,oy-th+fh],sideBL=[ox+fw,oy+fh];
+  pc.save();pc.beginPath();pc.moveTo(topTL[0],topTL[1]);pc.lineTo(topTR[0],topTR[1]);pc.lineTo(topBR[0],topBR[1]);pc.lineTo(topBL[0],topBL[1]);pc.closePath();const tg=pc.createLinearGradient(topTL[0],topTL[1],topBL[0],topBL[1]);tg.addColorStop(0,woodLight);tg.addColorStop(1,woodColor);pc.fillStyle=tg;pc.fill();pc.restore();
+  const topImg=getImgCanvas(d,d.faceX,d.bleed+d.backWrap,d.cW,d.sideWrap,false,fw,th,splitSide);drawQuadImage(pc,[topBL,topBR,topTR,topTL],topImg);
+  pc.save();pc.beginPath();pc.moveTo(sideTL[0],sideTL[1]);pc.lineTo(sideTR[0],sideTR[1]);pc.lineTo(sideBR[0],sideBR[1]);pc.lineTo(sideBL[0],sideBL[1]);pc.closePath();const sg=pc.createLinearGradient(sideTL[0],0,sideTR[0],0);sg.addColorStop(0,woodDark);sg.addColorStop(1,woodColor);pc.fillStyle=sg;pc.fill();pc.restore();
+  const sideImg=getImgCanvas(d,d.totalW-d.bleed-d.backWrap-d.sideWrap,d.faceY,d.sideWrap,d.cH,false,sw,fh,splitSide);drawQuadImage(pc,[sideTL,sideTR,sideBR,sideBL],sideImg);
+  const frontImg=getImgCanvas(d,d.faceX,d.faceY,d.cW,d.cH,false,fw,fh,splitSide);pc.save();pc.beginPath();pc.rect(ox,oy,fw,fh);pc.clip();pc.drawImage(frontImg,ox,oy,fw,fh);pc.restore();
+  pc.strokeStyle='#00000080';pc.lineWidth=1;pc.strokeRect(ox,oy,fw,fh);pc.beginPath();pc.moveTo(topTL[0],topTL[1]);pc.lineTo(topBL[0],topBL[1]);pc.lineTo(topBR[0],topBR[1]);pc.lineTo(topTR[0],topTR[1]);pc.moveTo(topBR[0],topBR[1]);pc.lineTo(sideBR[0],sideBR[1]);pc.strokeStyle='#00000060';pc.lineWidth=0.8;pc.stroke();
+  if(showDepth)drawMeasurement(pc,topTR[0],topTR[1]-10,topBR[0],topBR[1]-10,`${fmt(d.sideWrap)}mm`,'iso_h','above_iso');
+}
+
+function drawBackPanel(pc,bx,fy,d,fw,fh,woodColor,splitSide,showEdgeBatten){
+  const c=getCalc();
+  const batPxW=Math.round(fw*(d.sideWrap/d.cW)),batPxH=Math.round(fh*(d.sideWrap/d.cH));
+  const bwPxW=Math.round(fw*(d.backWrap/d.cW)),bwPxH=Math.round(fh*(d.backWrap/d.cH));
+  const intPxW=fw-batPxW*2,intPxH=fh-batPxH*2;
+  const back=document.createElement('canvas');back.width=fw;back.height=fh;
+  const bc=back.getContext('2d');
+  const flipped=getImgCanvas(d,d.faceX,d.faceY,d.cW,d.cH,true,fw,fh,splitSide);
+  bc.drawImage(flipped,0,0);
+  const wr=new Path2D();wr.rect(bwPxW,bwPxH,fw-bwPxW*2,fh-bwPxH*2);wr.rect(batPxW,batPxH,intPxW,intPxH);
+  bc.save();bc.clip(wr,'evenodd');bc.fillStyle=woodColor;bc.fillRect(0,0,fw,fh);bc.restore();
+  bc.fillStyle='#fff';bc.fillRect(batPxW,batPxH,intPxW,intPxH);
+  pc.drawImage(back,bx,fy);
+  const bar_mm=CANVAS_FRAME, bar=batPxW;
+  const hookTop=c.hookTop, frameH=c.frameH, frameW=c.frameW;
+  const canvTopRel_mm=hookTop?-bar_mm:frameH-d.cH-bar_mm;
+  const scaleX=fw/d.cW, scaleY=fh/d.cH;
+  if(c.needsHorizBrace||c.needsHorizBrace===true){
+    const braceY_mm=hookTop?frameH+2+bar_mm/2:-2-bar_mm/2;
+    const braceYpx=fy+Math.round((braceY_mm-canvTopRel_mm)*scaleY);
+    const bH=Math.round(bar_mm*scaleY);
+    pc.save();pc.globalAlpha=0.85;pc.fillStyle=woodColor;
+    pc.fillRect(bx+bar,braceYpx-bH/2,fw-bar*2,bH);
+    pc.strokeStyle='#a07030';pc.lineWidth=1;pc.strokeRect(bx+bar,braceYpx-bH/2,fw-bar*2,bH);
+    pc.restore();
+  }
+  if(c.needsVertBrace){
+    const frameXpx=splitSide==='left'?fw-bar-Math.round(frameW*scaleX):Math.round(frameW*scaleX);
+    const vertX=splitSide==='left'?bx+frameXpx-bar:bx+frameXpx;
+    pc.save();pc.globalAlpha=0.85;pc.fillStyle=woodColor;
+    pc.fillRect(vertX,fy+bar,bar,fh-bar*2);
+    pc.strokeStyle='#a07030';pc.lineWidth=1;pc.strokeRect(vertX,fy+bar,bar,fh-bar*2);
+    pc.restore();
+  }
+  pc.strokeStyle='#000';pc.lineWidth=1.5;pc.strokeRect(bx,fy,fw,fh);
+  const intX1=bx+batPxW,intX2=bx+batPxW+intPxW,intY1=fy+batPxH,intY2=fy+batPxH+intPxH;
+  drawMeasurement(pc,intX1,intY1+18,intX2,intY1+18,mmLabel(d.cW-d.sideWrap*2),'h','below');
+  const hLineX=intX1+18,tk=5;
+  pc.save();pc.strokeStyle='#333';pc.fillStyle='#333';pc.lineWidth=1;
+  pc.beginPath();pc.moveTo(hLineX,intY1);pc.lineTo(hLineX,intY2);pc.stroke();
+  pc.beginPath();pc.moveTo(hLineX-tk,intY1);pc.lineTo(hLineX+tk,intY1);pc.stroke();
+  pc.beginPath();pc.moveTo(hLineX-tk,intY2);pc.lineTo(hLineX+tk,intY2);pc.stroke();
+  const hTextY=Math.max(intY1+60,(intY1+intY2)/2);pc.font='15px Arial, sans-serif';
+  pc.save();pc.translate(hLineX+20,hTextY);pc.rotate(-Math.PI/2);pc.textAlign='center';pc.fillText(mmLabel(d.cH-d.sideWrap*2),0,0);pc.restore();pc.restore();
+  if(showEdgeBatten!==false){const batMidY=fy+Math.round(fh/2);drawMeasurement(pc,bx+fw-batPxW,batMidY,bx+fw,batMidY,mmLabel(d.sideWrap),'h','above_left');}
+}
+
+function getProofTitle(fn,presetName){if(fn&&presetName)return`${fn} — ${presetName}`;if(fn)return fn;if(presetName)return presetName;return'';}
+
+function generateSingleProof(d,fn){
+  const woodColor='#C8A96E',woodDark='#8B6340',woodLight='#E8C888',MARGIN=80,TOP_H=160,GAP=100;
+  const aspect=d.cH>0?d.cW/d.cH:1,frontH=Math.min(480,Math.round(500/aspect)),frontW=Math.round(frontH*aspect);
+  const batH=Math.round(frontH*(d.sideWrap/d.cH)),batW=Math.round(frontW*(d.sideWrap/d.cW));
+  const thD=Math.max(20,Math.round(batH*0.7)),swD=Math.max(20,Math.round(batW*0.7));
+  const isc=0.90,ifw=Math.round(frontW*isc),ifh=Math.round(frontH*isc),isw=Math.round(swD*isc),ith=Math.round(thD*isc);
+  const isoTotalW=ifw+isw,isoTotalH=ifh+ith,panelMaxH=Math.max(frontH,isoTotalH),isoLS=Math.round(MARGIN*0.40);
+  const TOTAL_W=(MARGIN-isoLS)*2+isoTotalW+GAP+frontW+GAP+frontW+60,TOTAL_H=TOP_H+panelMaxH+140;
+  const proof=document.createElement('canvas');proof.width=TOTAL_W;proof.height=TOTAL_H;
+  const pc=proof.getContext('2d');pc.fillStyle='#fff';pc.fillRect(0,0,TOTAL_W,TOTAL_H);
+  pc.fillStyle='#000';pc.font='bold 26px Arial';pc.textAlign='center';
+  const titleStr=getProofTitle(fn,selectedPresetName);
+  pc.fillText(titleStr?`${titleStr} — CANVAS PROOF`:'CANVAS PROOF',TOTAL_W/2,46);
+  const pY=TOP_H,iX=MARGIN-isoLS,fX=iX+isoTotalW+GAP,bX=fX+frontW+GAP,coI=Math.round((panelMaxH-isoTotalH)/2),coF=Math.round((panelMaxH-frontH)/2);
+  drawIsoCanvas(pc,iX+isw,pY+coI+ith,d,ifw,ifh,isw,ith,woodColor,woodDark,woodLight,null,true);
+  pc.font='bold 13px Arial';pc.fillStyle='#000';pc.textAlign='center';pc.fillText('ISOMETRIC VIEW',iX+isw+ifw/2,pY+coI+ith+ifh+22);
+  const fImg=getImgCanvas(d,d.faceX,d.faceY,d.cW,d.cH,false,frontW,frontH,null);
+  pc.save();pc.beginPath();pc.rect(fX,pY+coF,frontW,frontH);pc.clip();pc.drawImage(fImg,fX,pY+coF,frontW,frontH);pc.restore();pc.strokeStyle='#000';pc.lineWidth=1.5;pc.strokeRect(fX,pY+coF,frontW,frontH);
+  drawMeasurement(pc,fX,pY+coF-20,fX+frontW,pY+coF-20,mmLabel(d.cW),'h');
+  drawMeasurement(pc,fX-20,pY+coF,fX-20,pY+coF+frontH,mmLabel(d.cH),'v');
+  pc.font='bold 13px Arial';pc.fillStyle='#000';pc.textAlign='center';pc.fillText('FRONT',fX+frontW/2,pY+coF+frontH+22);
+  (function drawCanvasDetailBack(ox,oy,fw,fh){
+    const c2=getCalc(), bar_mm=CANVAS_FRAME, bar=Math.round(fw*(bar_mm/d.cW));
+    const hookTop=c2.hookTop, frameH=c2.frameH, frameW=c2.frameW;
+    const canvTopRel_mm=hookTop?-bar_mm:frameH-d.cH-bar_mm;
+    pc.fillStyle='#c8c8c8'; pc.fillRect(ox,oy,fw,fh);
+    pc.save(); pc.globalAlpha=0.9; pc.fillStyle=woodColor;
+    pc.fillRect(ox,oy,fw,bar); pc.fillRect(ox,oy+fh-bar,fw,bar);
+    pc.fillRect(ox,oy+bar,bar,fh-bar*2); pc.fillRect(ox+fw-bar,oy+bar,bar,fh-bar*2);
+    if(c2.needsHorizBrace||c2.needsCrossBrace){
+      const bY_mm=hookTop?frameH+2+bar_mm/2:-2-bar_mm/2;
+      const scaleY=fh/d.cH;
+      const bYpx=oy+Math.round((bY_mm-canvTopRel_mm)*scaleY);
+      pc.fillRect(ox+bar,bYpx-bar/2,fw-bar*2,bar);
+    }
+    if(c2.needsVertBrace){
+      const scaleX=fw/d.cW;
+      const frameXpx=Math.round(frameW*scaleX);
+      pc.fillRect(ox+frameXpx,oy+bar,bar,fh-bar*2);
+    }
+    pc.strokeStyle='#a07030'; pc.lineWidth=1; pc.strokeRect(ox,oy,fw,fh);
+    pc.restore();
+    pc.strokeStyle='#000'; pc.lineWidth=1.5; pc.strokeRect(ox,oy,fw,fh);
+  })(bX,pY+coF,frontW,frontH);
+  pc.font='bold 13px Arial';pc.fillStyle='#000';pc.textAlign='center';pc.fillText('BACK',bX+frontW/2,pY+coF+frontH+22);
+  const discY=TOP_H+panelMaxH+70;pc.font='13px Arial';pc.fillStyle='#555';pc.textAlign='center';
+  pc.fillText('This proof shows how your artwork will appear on your canvas.',TOTAL_W/2,discY);
+  pc.fillText('Please check the image positioning and cropping carefully, then confirm your approval before we proceed to production.',TOTAL_W/2,discY+20);
+  const dlFn=fn?`${fn} - CANVAS PROOF.jpg`:'CANVAS PROOF.jpg';
+  const a=document.createElement('a');a.href=proof.toDataURL('image/jpeg',0.93);a.download=dlFn;document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function generateSplitProof(d,fn){
+  const woodColor='#C8A96E',woodDark='#8B6340',woodLight='#E8C888',TOP_H=160,MARGIN=50,GAP=50,SEC_GAP=70;
+  const aspect=d.cH>0?d.cW/d.cH:1,singleH=Math.min(280,Math.round(300/aspect)),singleW=Math.round(singleH*aspect),doubleW=singleW*2;
+  const batH=Math.round(singleH*(d.sideWrap/d.cH)),thD=Math.max(12,Math.round(batH*0.7)),swD=Math.max(12,Math.round(Math.round(singleW*(d.sideWrap/d.cW))*0.7));
+  const isc=0.78,ifw=Math.round(singleW*isc),ifh=Math.round(singleH*isc),isw=Math.round(swD*isc),ith=Math.round(thD*isc),SEP=Math.round(ifw*0.14);
+  const isoTouchW=ifw*2+isw,isoGapW=ifw*2+SEP+isw,isoBlockW=isoTouchW+GAP+isoGapW,isoH=ifh+ith,panelMaxH=Math.max(singleH,isoH);
+  const TOTAL_W=MARGIN*2+isoBlockW+SEC_GAP+doubleW+SEC_GAP+doubleW+100,TOTAL_H=TOP_H+panelMaxH+180;
+  const proof=document.createElement('canvas');proof.width=TOTAL_W;proof.height=TOTAL_H;
+  const pc=proof.getContext('2d');pc.fillStyle='#fff';pc.fillRect(0,0,TOTAL_W,TOTAL_H);
+  pc.fillStyle='#000';pc.font='bold 26px Arial';pc.textAlign='center';
+  const titleStr=getProofTitle(fn,selectedPresetName);
+  pc.fillText(titleStr?`${titleStr} — PICSPLIT CANVAS PROOF`:'PICSPLIT CANVAS PROOF',TOTAL_W/2,46);
+  const pY=TOP_H,coIso=Math.round((panelMaxH-isoH)/2),coFlat=Math.round((panelMaxH-singleH)/2);
+  const isoTouchStartX=MARGIN,isoGapStartX=MARGIN+isoTouchW+GAP,frontStartX=MARGIN+isoBlockW+SEC_GAP,backStartX=frontStartX+doubleW+SEC_GAP;
+  function drawIsoPair(startX,gap,isFirstPair){const baseY=pY+coIso+ith,leftOx=startX+isw,rightOx=leftOx+ifw+gap;drawIsoCanvas(pc,leftOx,baseY,d,ifw,ifh,isw,ith,woodColor,woodDark,woodLight,'left',isFirstPair);drawIsoCanvas(pc,rightOx,baseY,d,ifw,ifh,isw,ith,woodColor,woodDark,woodLight,'right',false);if(gap===0){pc.strokeStyle='#00000050';pc.lineWidth=1.5;pc.setLineDash([]);pc.beginPath();pc.moveTo(leftOx+ifw,baseY);pc.lineTo(leftOx+ifw,baseY+ifh);pc.stroke();}}
+  drawIsoPair(isoTouchStartX,0,true);drawIsoPair(isoGapStartX,SEP,false);
+  pc.font='bold 13px Arial';pc.fillStyle='#000';pc.textAlign='center';pc.fillText('ISOMETRIC VIEWS',MARGIN+isoBlockW/2,pY+coIso+ith+ifh+22);
+  const fy=pY+coFlat;
+  const lFront=getImgCanvas(d,d.faceX,d.faceY,d.cW,d.cH,false,singleW,singleH,'left'),rFront=getImgCanvas(d,d.faceX,d.faceY,d.cW,d.cH,false,singleW,singleH,'right');
+  pc.save();pc.beginPath();pc.rect(frontStartX,fy,singleW,singleH);pc.clip();pc.drawImage(lFront,frontStartX,fy,singleW,singleH);pc.restore();pc.save();pc.beginPath();pc.rect(frontStartX+singleW,fy,singleW,singleH);pc.clip();pc.drawImage(rFront,frontStartX+singleW,fy,singleW,singleH);pc.restore();
+  pc.strokeStyle='#000';pc.lineWidth=1.5;pc.strokeRect(frontStartX,fy,singleW,singleH);pc.strokeRect(frontStartX+singleW,fy,singleW,singleH);
+  drawMeasurement(pc,frontStartX,fy-20,frontStartX+singleW,fy-20,mmLabel(d.cW),'h');drawMeasurement(pc,frontStartX+singleW,fy-20,frontStartX+doubleW,fy-20,mmLabel(d.cW),'h');drawMeasurement(pc,frontStartX,fy-46,frontStartX+doubleW,fy-46,mmLabel(d.cW*2)+' TOTAL','h');drawMeasurement(pc,frontStartX-20,fy,frontStartX-20,fy+singleH,mmLabel(d.cH),'v');
+  pc.font='bold 13px Arial';pc.fillStyle='#000';pc.fillText('LEFT',frontStartX+singleW/2,fy+singleH+22);pc.fillText('RIGHT',frontStartX+singleW+singleW/2,fy+singleH+22);pc.fillText('FRONT VIEW',frontStartX+doubleW/2,fy+singleH+42);
+  drawBackPanel(pc,backStartX,fy,d,singleW,singleH,woodColor,'left',false);drawBackPanel(pc,backStartX+singleW,fy,d,singleW,singleH,woodColor,'right',false);
+  pc.strokeStyle='#000';pc.lineWidth=1.5;pc.strokeRect(backStartX,fy,singleW,singleH);pc.strokeRect(backStartX+singleW,fy,singleW,singleH);
+  pc.font='bold 13px Arial';pc.fillStyle='#000';pc.textAlign='center';pc.fillText('RIGHT',backStartX+singleW/2,fy+singleH+22);pc.fillText('LEFT',backStartX+singleW+singleW/2,fy+singleH+22);pc.fillText('BACK VIEW',backStartX+doubleW/2,fy+singleH+42);
+  const discY=TOP_H+panelMaxH+100;pc.font='13px Arial';pc.fillStyle='#555';pc.textAlign='center';pc.fillText('This proof shows how your artwork will appear on your canvas.',TOTAL_W/2,discY);pc.fillText('Please check the image positioning and cropping carefully, then confirm your approval before we proceed to production.',TOTAL_W/2,discY+20);
+  const dlFn=fn?`${fn} - PICSPLIT PROOF.jpg`:'PICSPLIT PROOF.jpg';const a=document.createElement('a');a.href=proof.toDataURL('image/jpeg',0.93);a.download=dlFn;document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+new ResizeObserver(()=>{draw();drawCnv();}).observe(document.querySelector('.vis-panel'));
+new ResizeObserver(drawCnv).observe(container);
+
+(function attachVisDrag(){
+  const visCnv=document.getElementById('vis');
+  let visDragging=false, visDragStartX=0, visDragStartY=0, visOffsetStartX=0, visOffsetStartY=0;
+  let visCanvLeft=0, visCanvTop=0, visOuterCW=0, visOuterCH=0, visScale=1, visImgAreaW=0, visImgAreaH=0;
+
+  function updateVisBounds(){
+    if(!upImg||isSPLIT()||isSIDE())return;
+    const c=getCalc();
+    const bar=CANVAS_FRAME, hookTop=c.hookTop;
+    const canvOffY=hookTop?-bar:c.frameH-c.outerCanvH+bar;
+    const travelAbs=animT*c.travel, canvMovedTop=travelAbs+canvOffY;
+    const aH=c.tvH>0?c.tvH+c.apertureThick*2:60, aW2=c.tvW>0?c.tvW+c.apertureThick*2:100;
+    const motorH_mm=c.motorH, motorW_mm=c.motorW, actualMA=c.actualMotorToAperture;
+    const displayAbove=c.displayAbove;
+    const frameBottomUp=c.frameH, motorBottomFixed=frameBottomUp-c.motorOffset, motorFixedTop=motorBottomFixed-motorH_mm;
+    let aFixedTop=displayAbove?motorFixedTop-actualMA-aH:motorBottomFixed+actualMA;
+    const canvTopUp=canvOffY, canvBottomDown=c.travel+canvOffY+c.outerCanvH;
+    const highestPoint=Math.min(0,canvTopUp,aFixedTop), lowestPoint=Math.max(c.frameH,canvBottomDown,aFixedTop+aH,motorBottomFixed);
+    const totalMechH=lowestPoint-highestPoint;
+    const PAD=40,LEFT_DIM=80,RIGHT_DIM=140,TOP_PAD_EXTRA=40,BOTTOM_LABEL=50,LABEL_GUARD=50;
+    const totalSceneH=totalMechH+PAD*2+TOP_PAD_EXTRA+BOTTOM_LABEL;
+    const maxW=Math.max(c.frameW,c.outerCanvW,aW2,motorW_mm)+LEFT_DIM+RIGHT_DIM+PAD*2;
+    const cW2=visCnv.parentElement.clientWidth||600, cH2=visCnv.parentElement.clientHeight||500;
+    visScale=Math.min((cH2-4-LABEL_GUARD*2)/totalSceneH,(cW2-4)/maxW);
+    const cx=cW2/2, originY=(cH2-totalMechH*visScale)/2+PAD*visScale+TOP_PAD_EXTRA*visScale-highestPoint*visScale+LABEL_GUARD;
+    visCanvLeft=cx-(c.outerCanvW/2)*visScale;
+    visCanvTop=originY+canvMovedTop*visScale;
+    visOuterCW=c.outerCanvW*visScale;
+    visOuterCH=c.outerCanvH*visScale;
+    const d2=getDims();
+    visImgAreaW=d2.imgAreaW;
+    visImgAreaH=d2.imgAreaH;
+  }
+
+  function visCoordsToImgOffset(ex, ey){
+    const rect=visCnv.getBoundingClientRect();
+    const DPR=window.devicePixelRatio||1;
+    const px=(ex-rect.left);
+    const py=(ey-rect.top);
+    return{px,py};
+  }
+
+  visCnv.addEventListener('mousedown',e=>{
+    if(!upImg||!showArtwork||isSPLIT()||isSIDE())return;
+    updateVisBounds();
+    const{px,py}=visCoordsToImgOffset(e.clientX,e.clientY);
+    if(px<visCanvLeft||px>visCanvLeft+visOuterCW||py<visCanvTop||py>visCanvTop+visOuterCH)return;
+    visDragging=true;
+    visDragStartX=px; visDragStartY=py;
+    visOffsetStartX=imgXOffset; visOffsetStartY=imgYOffset;
+    visCnv.style.cursor='grabbing';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!visDragging)return;
+    const{px,py}=visCoordsToImgOffset(e.clientX,e.clientY);
+    const dx=px-visDragStartX, dy=py-visDragStartY;
+    const rx=visOuterCW/visImgAreaW, ry=visOuterCH/visImgAreaH;
+    imgXOffset=visOffsetStartX+dx/rx;
+    imgYOffset=visOffsetStartY+dy/ry;
+    const d=getDims();
+    clampOffset(d,null);
+    drawCnv(); draw();
+  });
+  window.addEventListener('mouseup',()=>{
+    if(!visDragging)return;
+    visDragging=false;
+    visCnv.style.cursor='';
+  });
+  visCnv.addEventListener('mousemove',e=>{
+    if(visDragging||!upImg||!showArtwork||isSPLIT()||isSIDE())return;
+    updateVisBounds();
+    const{px,py}=visCoordsToImgOffset(e.clientX,e.clientY);
+    visCnv.style.cursor=(px>=visCanvLeft&&px<=visCanvLeft+visOuterCW&&py>=visCanvTop&&py<=visCanvTop+visOuterCH)?'grab':'';
+  });
+  visCnv.addEventListener('mouseleave',()=>{if(!visDragging)visCnv.style.cursor='';});
+})();
+
+buildTVSelector(); buildPresets(); syncMotorTubeFields(); updateSidebarForMode(); updateInfo(); draw(); drawCnv(); updateDpiNote();
+window.addEventListener('resize',()=>{draw();drawCnv();});
 </script>
 </body>
 </html>
