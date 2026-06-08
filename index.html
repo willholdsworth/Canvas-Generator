@@ -1473,6 +1473,42 @@ document.getElementById('rmvBtn').addEventListener('click',()=>{
   drawCnv();draw();updateDpiNote();
 });
 
+const PROXIES = [
+    u => `https://proxy.will-holdsworth-design.workers.dev/?url=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`
+];
+
+async function fetchTextViaProxies(url) {
+    for (const build of PROXIES) {
+        try {
+            const res = await fetch(build(url), { headers: { 'Accept': 'text/html' } });
+            if (res.ok) {
+                const text = await res.text();
+                if (text) return text;
+            }
+        } catch (e) {
+            continue;
+        }
+    }
+    throw new Error('Page fetch failed: all sources unavailable');
+}
+
+function loadImageViaProxies(url, onload, onerror) {
+    let i = 0;
+    const tryNext = () => {
+        if (i >= PROXIES.length) { onerror(); return; }
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => onload(img);
+        img.onerror = () => { i += 1; tryNext(); };
+        img.src = PROXIES[i](url);
+    };
+    tryNext();
+}
+
 document.getElementById('fetchUrlBtn').addEventListener('click',async()=>{
   const raw=document.getElementById('imgUrl').value.trim();
   const statusEl=document.getElementById('urlStatus');
@@ -1480,21 +1516,14 @@ document.getElementById('fetchUrlBtn').addEventListener('click',async()=>{
   if(!raw)return;
   statusEl.style.color='#888'; statusEl.textContent='Fetching page...';
   try{
-    const proxyUrl='https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(raw);
-    const res=await fetch(proxyUrl,{headers:{'Accept':'text/html'}});
-    if(!res.ok)throw new Error('Page fetch failed ('+res.status+')');
-    const html=await res.text();
+    const html=await fetchTextViaProxies(raw);
     const canvasM=html.match(/class="canvas"[\s\S]{0,400}<img[^>]+src="([^"]+)"/);
     let imgSrc=canvasM?canvasM[1].trim():null;
     if(!imgSrc){const m=html.match(/src="(https?:\/\/cdn\.felixr\.com\/photos\/[^"]+)"/);if(m)imgSrc=m[1];}
     if(!imgSrc)throw new Error('No artwork image found on page');
     imgSrc=imgSrc.replace(/\/photos\/[^/]+\//,'/photos/500/');
     statusEl.textContent='Loading image...'; loader.style.display='block';
-    const proxiedImg='https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(imgSrc);
-    const newImg=new Image(); newImg.crossOrigin='anonymous';
-    newImg.onload=()=>{upImg=newImg;imgXOffset=0;imgYOffset=0;loader.style.display='none';statusEl.style.color='#27ae60';statusEl.textContent='Image loaded';if(!isSplit)cnvLeft.classList.add('has-image');setArtworkToggle(true);drawCnv();draw();updateDpiNote();};
-    newImg.onerror=()=>{loader.style.display='none';statusEl.style.color='#c00';statusEl.textContent='Could not load image';};
-    newImg.src=proxiedImg;
+    loadImageViaProxies(imgSrc,(newImg)=>{upImg=newImg;imgXOffset=0;imgYOffset=0;loader.style.display='none';statusEl.style.color='#27ae60';statusEl.textContent='Image loaded';if(!isSplit)cnvLeft.classList.add('has-image');setArtworkToggle(true);drawCnv();draw();updateDpiNote();},()=>{loader.style.display='none';statusEl.style.color='#c00';statusEl.textContent='Could not load image';});
   }catch(err){loader.style.display='none';statusEl.style.color='#c00';statusEl.textContent=err.message||'Failed to fetch image';}
 });
 document.getElementById('imgUrl').addEventListener('input',()=>{if(!document.getElementById('imgUrl').value.trim())document.getElementById('urlStatus').textContent='';});
